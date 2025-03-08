@@ -1,53 +1,31 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Map, MapPin } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '@/components/navbar';
 import PostCard from '@/components/ui/postcard';
+import { getPosts } from '@/lib/supabase/post';
+import { Post } from '@/types/Post';
 
 export default function MapPage() {
   const [activePage, setActivePage] = useState('map');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const posts = [
-    { 
-      id: 1, 
-      title: 'Forest Deforestation Alert', 
-      description: 'Satellite imagery shows significant tree loss in protected area.',
-      image: '/api/placeholder/600/400',
-      severity: 'high',
-      category: 'Deforestation',
-      location: 'Amazon Rainforest, Brazil',
-      upvotes: 24,
-      downvotes: 3,
-      postedTime: '2 days ago',
-      tags: ['#Deforestation', '#Conservation']
-    },
-    { 
-      id: 2, 
-      title: 'Water Pollution Report', 
-      description: 'Industrial waste detected in local river system affecting wildlife.',
-      image: '/api/placeholder/600/400',
-      severity: 'medium',
-      category: 'Water',
-      location: 'Mississippi River, USA',
-      upvotes: 18,
-      downvotes: 2,
-      postedTime: '4 days ago',
-      tags: ['#WaterPollution', '#Industry']
-    },
-    { 
-      id: 3, 
-      title: 'Air Quality Improvement', 
-      description: 'Local initiatives have reduced emissions in the downtown area.',
-      image: '/api/placeholder/600/400',
-      severity: 'low',
-      category: 'Air',
-      location: 'Paris, France',
-      upvotes: 32,
-      downvotes: 1,
-      postedTime: '1 week ago',
-      tags: ['#CleanAir', '#UrbanPlanning']
+  useEffect(() => {
+    async function loadPosts() {
+      try {
+        const data = await getPosts();
+        setPosts(data);
+      } catch (error) {
+        console.error('Failed to fetch posts:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
+    
+    loadPosts();
+  }, []);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
@@ -57,34 +35,69 @@ export default function MapPage() {
       {/* Main Content - Different layouts for mobile and desktop */}
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         {/* Desktop Sidebar (hidden on mobile) */}
-        <div className="hidden md:block md:w-[420px] lg:w-[480px] xl:w-[520px] bg-white dark:bg-gray-800 overflow-y-auto border-r border-t border-gray-200 dark:border-gray-700">
-          <PostsContainer posts={posts} />
+        <div className="hidden md:block md:w-[420px] lg:w-[480px] xl:w-[520px] bg-white dark:bg-gray-800 overflow-y-auto overflow-x-hidden border-r border-t border-gray-200 dark:border-gray-700">
+          <PostsContainer posts={posts} isLoading={loading} />
         </div>
         
         {/* Map View - Full width on mobile, partial on desktop */}
         <div className="flex-1 overflow-hidden md:order-2 p-4">
           <div className="h-[40vh] md:h-full bg-white dark:bg-gray-800 shadow-sm rounded-lg flex items-center justify-center text-xl text-gray-500 dark:text-gray-400">
-            <span className="flex items-center gap-2">
-              <Map size={24} />
-              Map View
-            </span>
+            {loading ? (
+              <span>Loading map...</span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Map size={24} />
+                Map View
+              </span>
+            )}
           </div>
         </div>
         
         {/* Mobile Posts Container (hidden on desktop) */}
-        <div className="md:hidden flex-1 overflow-auto bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-          <PostsContainer posts={posts} />
+        <div className="md:hidden flex-1 overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <PostsContainer posts={posts} isLoading={loading} />
         </div>
       </div>
     </div>
   );
+}
+
+// Container animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1, // delay between each child animation
+      delayChildren: 0.3,   // delay before starting the staggered animations
+    }
+  }
+};
+
+// Individual post animation variants
+const postVariants = {
+  hidden: { opacity: 0, y: 50 },
+  show: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 24
+    }
+  }
 };
 
 // Posts Container Component
-const PostsContainer = ({ posts }: { posts: any[] }) => {
+const PostsContainer = ({ posts, isLoading }: { posts: Post[], isLoading: boolean }) => {
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <motion.div 
+        className="p-4 border-b border-gray-200 dark:border-gray-700"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="relative">
           <input
             type="text"
@@ -99,11 +112,33 @@ const PostsContainer = ({ posts }: { posts: any[] }) => {
             </svg>
           </div>
         </div>
-      </div>
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
-        {posts.map(post => (
-          <PostCard key={post.id} post={post} />
-        ))}
+      </motion.div>
+      
+      <div className="flex-1 overflow-y-auto overflow-x-hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {isLoading ? (
+          <div className="p-4 text-center">Loading posts...</div>
+        ) : posts.length > 0 ? (
+          <AnimatePresence>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="divide-y divide-gray-200 dark:divide-gray-700"
+            >
+              {posts.map((post, index) => (
+                <motion.div
+                  key={post.id}
+                  variants={postVariants}
+                  layout
+                >
+                  <PostCard post={post} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        ) : (
+          <div className="p-4 text-center text-gray-500">No posts found</div>
+        )}
       </div>
     </div>
   );
