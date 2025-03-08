@@ -4,6 +4,7 @@ guys want */}
 import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/server'
+import MapBox from './_components/mapbox'
 
 export default async function PrivatePage() {
   const supabase = await createClient()
@@ -13,5 +14,12 @@ export default async function PrivatePage() {
     redirect('/auth/signin')
   }
 
-  return <p>Hello {data.user.email}</p>
+  return (
+    <>
+      <p>Hello {data.user.email}</p>
+      <MapBox/>
+    </>
+
+  )
+
 }
