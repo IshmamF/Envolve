@@ -14,6 +14,12 @@ type info = {
   longitude: number | null;
   severity: string;
   id: number;
+  category: string[], 
+  tags: string[],
+  upvotes: number,
+  downvotes: number,
+  resolved: number,
+  location: string
 };
 
 interface Props {
