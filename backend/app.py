@@ -30,6 +30,7 @@ class DatasetConfig:
     version: int
     format: str
     target_class: str
+    api_key: str
 
     @property
     def id(self) -> str:
@@ -48,7 +49,7 @@ def download_dataset(config: DatasetConfig):
 
     from roboflow import Roboflow
 
-    rf = Roboflow(api_key=os.getenv("ROBOFLOW_API_KEY"))
+    rf = Roboflow(api_key=os.getenv(config.api_key))
     project = (
         rf.workspace(config.workspace_id)
         .project(config.project_id)
@@ -183,4 +184,96 @@ class Inference:
             "Inferences per second:",
             round(completed / elapsed_seconds, 2),
         )
+
+@app.local_entrypoint()
+def main(quick_check: bool = True, inference_only: bool = False):
+    """Run fine-tuning and inference on two datasets.
+
+    Args:
+        quick_check: fine-tune on a small subset. Lower quality results, but faster iteration.
+        inference_only: skip fine-tuning and only run inference
+    """
+
+    pothole = DatasetConfig(
+        workspace_id="pothole-azvhk",
+        project_id="pothole-clzln-nytef",
+        version=1,
+        format="yolov11",
+        target_class="Pothole",
+        api_key="POTHOLE_API_KEY"
+    )
+    litter = DatasetConfig(
+        workspace_id="litter-gjwtf",
+        project_id="garbage-bc3vb",
+        version=1,
+        format="yolov11",
+        target_class="Litter",
+        api_key="LITTER_API_KEY"
+    )
+    flood = DatasetConfig(
+        workspace_id="flood-rhaty",
+        project_id="flood-tjtoa",
+        version=1,
+        format="yolov11",
+        target_class="Flood",
+        api_key="FLOOD_API_KEY"
+    )
+    light = DatasetConfig(
+        workspace_id="streetlight-wnkgf",
+        project_id="street-light-byvmw",
+        version=1,
+        format="yolov11",
+        target_class="Light",
+        api_key="LIGHT_API_KEY"
+    )
+    datasets = [pothole, litter, flood, light]
+
+    # .for_each runs a function once on each element of the input iterators
+    # here, that means download each dataset, in parallel
+    if not inference_only:
+        download_dataset.for_each(datasets)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    model_ids = [dataset.id + f"/{today}" for dataset in datasets]
+
+    if not inference_only:
+        train.for_each(model_ids, datasets, kwargs={"quick_check": quick_check})
+
+    # let's run inference!
+    for model_id, dataset in zip(model_ids, datasets):
+        inference = Inference(
+            volume_path / "runs" / model_id / "weights" / "best.pt"
+        )
+
+        # predict on a single image and save output to the volume
+        test_images = volume.listdir(
+            str(Path("dataset") / dataset.id / "test" / "images")
+        )
+        # run inference on the first 5 images
+        for ii, image in enumerate(test_images):
+            print(f"{model_id}: Single image prediction on image", image.path)
+            inference.predict.remote(
+                model_id=model_id,
+                image_path=f"{volume_path}/{image.path}",
+                display=(
+                    ii == 0  # display inference results only on first image
+                ),
+            )
+            if ii >= 4:
+                break
+
+        # streaming inference on images from the test set
+        print(
+            f"{model_id}: Streaming inferences on all images in the test set..."
+        )
+        count = 0
+        for detection in inference.streaming_count.remote_gen(
+            batch_dir=f"{volume_path}/dataset/{dataset.id}/test/images"
+        ):
+            if detection:
+                print(f"{dataset.target_class}", end="")
+                count += 1
+            else:
+                print("🎞️", end="", flush=True)
+        print(f"\n{model_id}: Counted {count} {dataset.target_class}s!")
 
