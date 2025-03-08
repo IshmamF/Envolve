@@ -117,3 +117,70 @@ def read_image(image_path: str):
 
     source = cv2.imread(image_path)
     return source
+
+@app.cls(gpu="a10g")
+class Inference:
+    def __init__(self, weights_path):
+        self.weights_path = weights_path
+
+    @modal.enter()
+    def load_model(self):
+        from ultralytics import YOLO
+
+        self.model = YOLO(self.weights_path)
+
+    @modal.method()
+    def predict(self, model_id: str, image_path: str, display: bool = False):
+        """A simple method for running inference on one image at a time."""
+        results = self.model.predict(
+            image_path,
+            half=True,  # use fp16
+            save=True,
+            exist_ok=True,
+            project=f"{volume_path}/predictions/{model_id}",
+        )
+        if display:
+            from term_image.image import from_file
+
+            terminal_image = from_file(results[0].path)
+            terminal_image.draw()
+        # you can view the output file via the Volumes UI in the Modal dashboard -- https://modal.com/storage
+
+    @modal.method()
+    def streaming_count(self, batch_dir: str, threshold: float | None = None):
+        """Counts the number of objects in a directory of images.
+
+        Intended as a demonstration of high-throughput streaming inference."""
+        import os
+        import time
+
+        image_files = [
+            os.path.join(batch_dir, f) for f in os.listdir(batch_dir)
+        ]
+
+        completed, start = 0, time.monotonic_ns()
+        for image in read_image.map(image_files):
+            # note that we run predict on a single input at a time.
+            # each individual inference is usually done before the next image arrives, so there's no throughput benefit to batching.
+            results = self.model.predict(
+                image,
+                half=True,  # use fp16
+                save=False,  # don't save to disk, as it slows down the pipeline significantly
+                verbose=False,
+            )
+            completed += 1
+            for res in results:
+                for conf in res.boxes.conf:
+                    if threshold is None:
+                        yield 1
+                        continue
+                    if conf.item() >= threshold:
+                        yield 1
+            yield 0
+
+        elapsed_seconds = (time.monotonic_ns() - start) / 1e9
+        print(
+            "Inferences per second:",
+            round(completed / elapsed_seconds, 2),
+        )
+
