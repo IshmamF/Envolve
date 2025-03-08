@@ -3,8 +3,6 @@ import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useState, useEffect, Suspense } from 'react';
 import MarkerDialog from './markerDialog';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { getSurroundingData } from '@/app/private/actions';
 
 const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -21,6 +19,20 @@ type info = {
 interface Props {
   data: info[];
 }
+
+function severityColor(severity: string) {
+  switch (severity) {
+    case 'high':
+      return 'border-red-500';  
+    case 'medium': 
+      return 'border-yellow-500';
+    case 'low':
+      return 'border-green-500';
+    default:
+      return 'border-gray-500';  
+  }
+}
+
 
 
 const MapBox = ({data}: Props) => {
@@ -82,14 +94,15 @@ const MapBox = ({data}: Props) => {
                   setCurrInfo(oost);
                 }}
               >
-                <img
-                  src={oost.image_url}
-                  alt="marker"
-                  width={75}
-                  height={75}
-                  className="border-5 rounded-xl"
-                />
+                  <img
+                    src={oost.image_url}
+                    alt="marker"
+                    width={75}
+                    height={75}
+                    className={`border-8 ${severityColor(oost.severity)} inline-block rounded-xl`}
+                  />
               </Marker>
+
             ))}
         </Map>
       </Suspense>
