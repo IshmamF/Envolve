@@ -43,13 +43,13 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
             
             {/* Content */}
             <div className="p-4">
-              {/* Title and Location */}
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-semibold">{post.title}</h3>
-                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                  <MapPin size={12} className="mr-1" />
-                  {post.location}
-                </div>
+              {/* Title */}
+              <h3 className="text-lg font-semibold mb-1">{post.title}</h3>
+              
+              {/* Location */}
+              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mb-2">
+                <MapPin size={12} className="mr-1" />
+                {post.location}
               </div>
               
               {/* Description */}
@@ -113,13 +113,13 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
           
           {/* Content */}
           <div className="flex-1">
-            {/* Title and Location */}
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-semibold">{post.title}</h3>
-              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                <MapPin size={12} className="mr-1" />
-                {post.location}
-              </div>
+            {/* Title */}
+            <h3 className="text-lg font-semibold mb-1">{post.title}</h3>
+            
+            {/* Location */}
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mb-2">
+              <MapPin size={12} className="mr-1" />
+              {post.location}
             </div>
             
             {/* Description */}
