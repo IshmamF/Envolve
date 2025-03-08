@@ -1,22 +1,38 @@
 'use client';
-import Map, {Marker} from 'react-map-gl/mapbox';
+import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import {useState, useEffect} from 'react'
+import { useState, useEffect, Suspense } from 'react';
 import MarkerDialog from './markerDialog';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { getSurroundingData } from '@/app/private/actions';
 
 const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
 type info = {
-  title: string,
-  lat: number, 
-  long: number,
-  img: string
+  description: string;
+  image_url: string;
+  title: string;
+  latitude: number | null;
+  longitude: number | null;
+  severity: string;
+  id: number;
+};
+
+interface Props {
+  data: info[];
 }
 
-const MapBox = () => {
+
+const MapBox = ({data}: Props) => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
-  const [userloc, setUserLoc] = useState<[Number, number]>([73.8203, 40.7367]);
-  //const [currInfo, setCurrInfo] = useState<info | null>(null);
+  const [userloc, setUserLoc] = useState<[number, number]>([ -73.8203, 40.7367 ]);
+  const [currInfo, setCurrInfo] = useState<info | null>(null);
+  const [viewState, setViewState] = useState({
+    longitude: userloc[0],
+    latitude: userloc[1],
+    zoom: 13
+  });
+  
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(successLocation, errorLocation, {
@@ -24,60 +40,63 @@ const MapBox = () => {
     });
 
     function successLocation(position: GeolocationPosition) {
-      const newLoc: [number, number] = [
-        position.coords.longitude,
-        position.coords.latitude
-      ];
-      console.log("User location found:", newLoc);
+      const newLoc: [number, number] = [position.coords.longitude, position.coords.latitude];
+      console.log('User location found:', newLoc);
       setUserLoc(newLoc);
     }
 
     function errorLocation() {
-      console.log("Error getting location, using default.");
+      console.log('Error getting location, using default.');
       setUserLoc([73.8203, 40.7367]);
     }
-  }, []); 
+  }, []);
 
-  const mock: info = {
-    title: 'This is a test image',
-    lat: -73.924608,
-    long: 40.638874,
-    img: 'https://plus.unsplash.com/premium_photo-1732721750556-f5aef2460dfd?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
-  };
-  
+  useEffect(() => {
+    setViewState((prev) => ({
+      ...prev,
+      longitude: userloc[0],
+      latitude: userloc[1]
+    }));
+  }, [userloc]);
 
   return (
     <>
-      <Map
-        mapboxAccessToken={token}
-        initialViewState={{
-          longitude: -73.924608,
-          latitude: 40.638874,
-          zoom: 13
-        }}
-        style={{ width: "400px", height: "400px" }} 
-        mapStyle="mapbox://styles/mapbox/streets-v12"
-      >
-        <Marker 
-          longitude={-73.924608} 
-          latitude={40.638874} 
-          anchor="bottom"
-          onClick={() => setOpenDialog(true)}
+      <Suspense>
+        <Map
+          {...viewState}
+          mapboxAccessToken={token}
+          style={{ width: '400px', height: '400px' }}
+          mapStyle="mapbox://styles/mapbox/streets-v12"
+          onMove={(evt) => {setViewState(evt.viewState)}}
         >
-          <img 
-            src="https://plus.unsplash.com/premium_photo-1732721750556-f5aef2460dfd?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
-            alt="marker" 
-            width={75} 
-            height={75}
-            className='border-5 rounded-xl' 
-          />
-        </Marker>
-      </Map>
-      <MarkerDialog
-        issue={mock}
-        openDialog={openDialog}
-        setOpenDialog={setOpenDialog}
-      />
+          {data
+            .filter((oost) => oost.latitude !== null && oost.longitude !== null)
+            .map((oost) => (
+              <Marker
+                key={oost.id} 
+                longitude={oost.longitude!}
+                latitude={oost.latitude!}
+                anchor="bottom"
+                onClick={() => {
+                  setOpenDialog(true);
+                  setCurrInfo(oost);
+                }}
+              >
+                <img
+                  src={oost.image_url}
+                  alt="marker"
+                  width={75}
+                  height={75}
+                  className="border-5 rounded-xl"
+                />
+              </Marker>
+            ))}
+        </Map>
+      </Suspense>
+
+      {currInfo && (
+        <MarkerDialog issue={currInfo} openDialog={openDialog} setOpenDialog={setOpenDialog} />
+      )}
     </>
   );
 };

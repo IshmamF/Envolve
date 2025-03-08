@@ -24,11 +24,11 @@ export default function MarkerDialog({issue, openDialog, setOpenDialog}: Props) 
                 <DialogHeader>
                     <DialogTitle>{issue.title}</DialogTitle>
                     <DialogDescription>
-                        {`Longitude: ${issue.long} Latitude: ${issue.lat}`}
+                        {`Longitude: ${issue.longitude} Latitude: ${issue.latitude}`}
                     </DialogDescription>
                 </DialogHeader>
                 <img
-                    src={issue.img || "/placeholder.svg"}
+                    src={issue.image_url || "/placeholder.svg"}
                     className="w-full h-48"
                 />
             </DialogContent>
@@ -37,8 +37,11 @@ export default function MarkerDialog({issue, openDialog, setOpenDialog}: Props) 
 }
 
 type info = {
-    title: string,
-    lat: number, 
-    long: number
-    img: string
-}
+    description: string;
+    image_url: string;
+    title: string;
+    latitude: number | null;
+    longitude: number | null;
+    severity: string;
+    id: number;
+  };
