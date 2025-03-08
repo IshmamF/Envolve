@@ -56,3 +56,58 @@ def download_dataset(config: DatasetConfig):
     )
     dataset_dir = volume_path / "dataset" / config.id
     project.download(config.format, location=str(dataset_dir))
+    
+
+MINUTES = 60
+
+TRAIN_GPU_COUNT = 1
+TRAIN_GPU = f"A100:{TRAIN_GPU_COUNT}"
+TRAIN_CPU_COUNT = 4
+
+
+@app.function(
+    gpu=TRAIN_GPU,
+    cpu=TRAIN_CPU_COUNT,
+    timeout=60 * MINUTES,
+)
+def train(
+    model_id: str,
+    dataset: DatasetConfig,
+    model_size="yolov10m.pt",
+    quick_check=False,
+):
+    from ultralytics import YOLO
+
+    volume.reload()  
+
+    model_path = volume_path / "runs" / model_id
+    model_path.mkdir(parents=True, exist_ok=True)
+
+    data_path = volume_path / "dataset" / dataset.id / "data.yaml"
+
+    model = YOLO(model_size)
+    model.train(
+        # dataset config
+        data=data_path,
+        fraction=0.4
+        if not quick_check
+        else 0.04,  # fraction of dataset to use for training/validation
+        # optimization config
+        device=list(range(TRAIN_GPU_COUNT)),  # use the GPU(s)
+        epochs=8
+        if not quick_check
+        else 1,  # pass over entire dataset this many times
+        batch=0.95,  # automatic batch size to target fraction of GPU util
+        seed=117,  # set seed for reproducibility
+        # data processing config
+        workers=max(
+            TRAIN_CPU_COUNT // TRAIN_GPU_COUNT, 1
+        ),  # split CPUs evenly across GPUs
+        cache=False,  # cache preprocessed images in RAM?
+        # model saving config
+        project=f"{volume_path}/runs",
+        name=model_id,
+        exist_ok=True,  # overwrite previous model if it exists
+        verbose=True,  # detailed logs
+    )
+
