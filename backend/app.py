@@ -56,7 +56,7 @@ def download_dataset(config: DatasetConfig):
     )
     dataset_dir = volume_path / "dataset" / config.id
     project.download(config.format, location=str(dataset_dir))
-    
+
 
 MINUTES = 60
 
@@ -111,3 +111,9 @@ def train(
         verbose=True,  # detailed logs
     )
 
+@app.function()
+def read_image(image_path: str):
+    import cv2
+
+    source = cv2.imread(image_path)
+    return source
