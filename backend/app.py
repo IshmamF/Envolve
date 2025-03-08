@@ -35,8 +35,6 @@ class DatasetConfig:
     @property
     def id(self) -> str:
         return f"{self.workspace_id}/{self.project_id}/{self.version}"
-
-
 @app.function(
     secrets=[
         modal.Secret.from_name(
@@ -44,9 +42,9 @@ class DatasetConfig:
         )
     ]
 )
+
 def download_dataset(config: DatasetConfig):
     import os
-
     from roboflow import Roboflow
 
     rf = Roboflow(api_key=os.getenv(config.api_key))
@@ -55,9 +53,12 @@ def download_dataset(config: DatasetConfig):
         .project(config.project_id)
         .version(config.version)
     )
-    dataset_dir = volume_path / "dataset" / config.id
-    project.download(config.format, location=str(dataset_dir))
 
+    dataset_dir = volume_path / "dataset_parts" / config.target_class
+    project.download(config.format, location=str(dataset_dir))
+    
+    print(f"Downloaded {config.target_class} dataset to {dataset_dir}")
+    return config.target_class
 
 MINUTES = 60
 
