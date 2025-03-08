@@ -60,6 +60,94 @@ def download_dataset(config: DatasetConfig):
     print(f"Downloaded {config.target_class} dataset to {dataset_dir}")
     return config.target_class
 
+@app.function()
+def create_unified_dataset(categories):
+    import os
+    import shutil
+    import yaml
+    
+
+    unified_dir = volume_path / "unified_dataset"
+    unified_images_dir = unified_dir / "images"
+    unified_labels_dir = unified_dir / "labels"
+    
+
+    for split in ["train", "valid", "test"]:
+        (unified_images_dir / split).mkdir(parents=True, exist_ok=True)
+        (unified_labels_dir / split).mkdir(parents=True, exist_ok=True)
+    
+
+    class_names = []
+    
+
+    for category in categories:
+        class_names.append(category)
+        category_idx = class_names.index(category)
+        
+
+        source_dir = volume_path / "dataset_parts" / category
+        
+ 
+        with open(source_dir / "data.yaml", "r") as f:
+            dataset_config = yaml.safe_load(f)
+        
+
+        for split in ["train", "valid", "test"]:
+
+            src_img_dir = source_dir / split / "images"
+            if not src_img_dir.exists():
+                continue
+                
+
+            for img_file in os.listdir(src_img_dir):
+
+                new_name = f"{category}_{img_file}"
+                
+                # Copy image
+                shutil.copy(
+                    src_img_dir / img_file,
+                    unified_images_dir / split / new_name
+                )
+                
+
+                label_file = img_file.replace(".jpg", ".txt").replace(".jpeg", ".txt").replace(".png", ".txt")
+                src_label_path = source_dir / split / "labels" / label_file
+                
+                if src_label_path.exists():
+
+                    with open(src_label_path, "r") as f:
+                        lines = f.readlines()
+                    
+
+                    modified_lines = []
+                    for line in lines:
+                        parts = line.strip().split()
+                        if parts:
+
+                            parts[0] = str(category_idx)
+                            modified_lines.append(" ".join(parts) + "\n")
+                    
+
+                    new_label_name = new_name.replace(".jpg", ".txt").replace(".jpeg", ".txt").replace(".png", ".txt")
+                    with open(unified_labels_dir / split / new_label_name, "w") as f:
+                        f.writelines(modified_lines)
+    
+
+    unified_yaml = {
+        "path": str(unified_dir),
+        "train": str(unified_images_dir / "train"),
+        "val": str(unified_images_dir / "valid"),
+        "test": str(unified_images_dir / "test"),
+        "names": {i: name for i, name in enumerate(class_names)},
+        "nc": len(class_names)
+    }
+    
+    with open(unified_dir / "data.yaml", "w") as f:
+        yaml.dump(unified_yaml, f, sort_keys=False)
+    
+    print(f"Created unified dataset with {len(class_names)} classes: {', '.join(class_names)}")
+    return str(unified_dir / "data.yaml")
+
 MINUTES = 60
 
 TRAIN_GPU_COUNT = 1
@@ -72,6 +160,7 @@ TRAIN_CPU_COUNT = 4
     cpu=TRAIN_CPU_COUNT,
     timeout=60 * MINUTES,
 )
+
 def train(
     model_id: str,
     dataset: DatasetConfig,
