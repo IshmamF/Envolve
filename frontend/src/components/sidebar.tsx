@@ -19,7 +19,7 @@ export default function Sidebar({ posts }: { posts: any[] }): JSX.Element {
             </div>
           </div>
         </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+        <div>
           {posts.map(post => (
             <PostCard key={post.id} post={post} />
           ))}

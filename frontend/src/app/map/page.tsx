@@ -123,7 +123,6 @@ const PostsContainer = ({ posts, isLoading }: { posts: Post[], isLoading: boolea
               variants={containerVariants}
               initial="hidden"
               animate="show"
-              className="divide-y divide-gray-200 dark:divide-gray-700"
             >
               {posts.map((post, index) => (
                 <motion.div
