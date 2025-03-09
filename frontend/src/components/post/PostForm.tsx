@@ -72,16 +72,24 @@ const PostForm = ({ image, apiData }: PostFormProps) => {
   const insertPost = useMutation({
     mutationFn: async () => {
       const { data: user } = await supabase.auth.getUser();
+  
+      const formattedData = {
+        ...formData,
+        author: user?.user?.id || "anonymous",
+        category: formData.category ? [formData.category] : [], // Ensure it's an array
+        tags: formData.tags ? formData.tags.split(",") : [] // Convert comma-separated string to array
+      };
+  
       const { data, error } = await supabase
         .from("posts")
-        .insert([{ ...formData, author: user?.user?.id || "anonymous" }])
+        .insert([formattedData])
         .select("id")
         .single();
-
+  
       if (error) throw error;
       return data.id;
     }
-  });
+  });  
 
   const uploadImage = useMutation({
     mutationFn: async (postId: string) => {
