@@ -2,6 +2,8 @@ import { MapPin, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { VoteType } from '@/types/Vote';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { upVoteUpdate, downVoteUpdate } from '@/app/private/actions';
 
 // helper function to format timestamptz to a relative time string
 function formatRelativeTime(timestamp: string): string {
@@ -52,6 +54,19 @@ const Badge = ({
 );
 
 export default function PostCard({ post }: { post: any }): JSX.Element {
+    const queryClient = useQueryClient();
+    const upvoteMutation = useMutation({
+      mutationFn: upVoteUpdate,
+      onSuccess: () => {
+        queryClient.invalidateQueries({queryKey: ['posts']});
+      }
+    })
+    const downvoteMutation = useMutation({
+      mutationFn: downVoteUpdate,
+      onSuccess: () => {
+        queryClient.invalidateQueries({queryKey: ['posts']});
+      }
+    })
     // Define severity styles
     const severityStyles = {
       high: { color: 'destructive', label: 'High Severity', bgColor: 'bg-red-100 dark:bg-red-900', textColor: 'text-red-800 dark:text-red-200' },
@@ -79,6 +94,7 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
       if (activeVote === 'upvote') {
         // Clicking upvote again resets it
         setUpvotes(initialUpvotes);
+        upvoteMutation.mutate({vote: initialUpvotes, post_id: post.id})
         setActiveVote(null);
       } else {
         // If downvote was active, reset it
@@ -87,6 +103,7 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
         }
         // Activate upvote
         setUpvotes(initialUpvotes + 1);
+        upvoteMutation.mutate({vote: initialUpvotes + 1, post_id: post.id})
         setActiveVote('upvote');
       }
     };
@@ -95,6 +112,7 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
       if (activeVote === 'downvote') {
         // Clicking downvote again resets it
         setDownvotes(initialDownvotes);
+        downvoteMutation.mutate({vote: initialUpvotes, post_id: post.id})
         setActiveVote(null);
       } else {
         // If upvote was active, reset it
@@ -103,6 +121,7 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
         }
         // Activate downvote
         setDownvotes(initialDownvotes + 1);
+        downvoteMutation.mutate({vote: initialUpvotes + 1, post_id: post.id})
         setActiveVote('downvote');
       }
     };
