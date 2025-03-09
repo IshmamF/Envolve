@@ -258,9 +258,9 @@ Title:
 
 3. Analyze the photo and provide the following information in JSON format:
 
-a. General information: Describe what you can tell about the photo, including key elements, setting, and any notable features.
+a. General information: Provide a simple description of a potential environmental fix-up task related to the image. Focus on issues such as potholes, littering, flooding, broken street lights, or similar urban/environmental problems.
 
-b. Environmental task: Provide a simple description of a potential environmental fix-up task related to the image. Focus on issues such as potholes, littering, flooding, broken street lights, or similar urban/environmental problems.
+b. Environmental task: Describe what you can tell about the photo, including key elements, setting, and any notable features.
 
 c. Severity: Rate the urgency of the issue on a scale from 1 to 5, where 1 is least urgent and 5 is most urgent. Consider factors such as safety hazards, environmental impact, and inconvenience to the public.
 
