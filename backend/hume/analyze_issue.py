@@ -4,12 +4,15 @@ import json
 import anthropic
 from typing import Optional, Dict, Any
 
-image = modal.Image.debian_slim().pip_install(["anthropic", "fastapi", "python-multipart"])
+# Create Modal image with Anthropic SDK
+image = modal.Image.debian_slim().pip_install(["anthropic>=0.18.0", "fastapi", "python-multipart"])
 
+# Create Modal app
 app = modal.App("nyc-issue-analyzer")
 
 class IssueAnalyzer:
     def __init__(self):
+        # Check for Anthropic API key
         self.api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
             print("Warning: ANTHROPIC_API_KEY not found in environment variables")
@@ -24,6 +27,10 @@ class IssueAnalyzer:
         location: str,
         photo_info: Optional[str] = None
     ) -> Dict[str, Any]:
+        """
+        Analyze an issue using Claude to determine which NYC city organization should handle it
+        and generate a call script for Hume AI.
+        """
         if not self.api_key:
             return {
                 "error": "ANTHROPIC_API_KEY not configured",
@@ -31,13 +38,14 @@ class IssueAnalyzer:
                     "selectedOrganization": "NYC 311 Service",
                     "organizationId": 1,
                     "justification": "Default recommendation due to missing API key",
-                    "callScript": "Hello, I'd like to report an issue: {title}. The issue is located at: {location}."
-                        .format(title=title, location=location)
+                    "callScript": f"Hello, I'd like to report an issue: {title}. The issue is located at: {location}."
                 }
             }
             
+        # Initialize Anthropic client
         client = anthropic.Anthropic(api_key=self.api_key)
         
+        # Prepare the prompt with real values
         prompt = f"""You are an AI assistant for New York City's issue reporting system. Your task is to analyze reported issues, determine which city organization should handle them (if any), and create a brief call script for use with Hume AI.
 
 First, review the list of city organizations and their responsibilities:
@@ -173,29 +181,50 @@ After your analysis, present your recommendation in a JSON format with the follo
 Ensure that your JSON response clearly distinguishes between cases where an organization is recommended and cases where no reporting is deemed necessary. The call script should be a concise set of talking points or questions based on the issue evaluation and recommendation."""
         
         try:
-            message = await client.messages.create(
-                model="claude-3-5-haiku-20241022",
-                max_tokens=8192,
-                temperature=0.7,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
-            )
+            # Call Claude API with synchronous handling
+            try:
+                message = client.messages.create(
+                    model="claude-3-5-haiku-20241022",
+                    max_tokens=8192,
+                    temperature=0.7,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                )
+                
+                # Extract response text (new style API)
+                response_text = message.content[0].text
+            except Exception as e:
+                print(f"Error with new API format: {e}")
+                # Try legacy API format as fallback
+                try:
+                    message = client.completions.create(
+                        model="claude-3-5-haiku-20241022",
+                        max_tokens=8192,
+                        temperature=0.7,
+                        prompt=f"\n\nHuman: {prompt}\n\nAssistant:",
+                    )
+                    response_text = message.completion
+                except Exception as e2:
+                    print(f"Error with legacy API format: {e2}")
+                    raise Exception(f"Failed to call Claude API: {e} | {e2}")
             
-            response_text = message.content[0].text
-            
+            # Parse the analysis and recommendation sections
             full_analysis = ""
             recommendation = {}
             
+            # Extract analysis section
             if "<issue_analysis>" in response_text and "</issue_analysis>" in response_text:
                 analysis_start = response_text.find("<issue_analysis>") + len("<issue_analysis>")
                 analysis_end = response_text.find("</issue_analysis>")
                 full_analysis = response_text[analysis_start:analysis_end].strip()
             
+            # Extract JSON recommendation
             try:
+                # Find JSON block by looking for curly braces pattern
                 json_start = response_text.find("{")
                 json_end = response_text.rfind("}") + 1
                 if json_start >= 0 and json_end > json_start:
@@ -210,6 +239,7 @@ Ensure that your JSON response clearly distinguishes between cases where an orga
                     "callScript": f"Hello, I'd like to report an issue: {title}. The issue is located at: {location}."
                 }
             
+            # Return the complete response
             return {
                 "analysis": full_analysis,
                 "recommendation": recommendation,
@@ -228,6 +258,7 @@ Ensure that your JSON response clearly distinguishes between cases where an orga
                 }
             }
 
+# Create FastAPI endpoint
 @app.function(
     image=image,
     secrets=[modal.Secret.from_name("anthropic-secret")]
@@ -241,6 +272,7 @@ def api():
     
     app = FastAPI(title="NYC Issue Analyzer API")
     
+    # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -249,6 +281,7 @@ def api():
         allow_headers=["*"],
     )
     
+    # Define request model
     class IssueRequest(BaseModel):
         title: str
         description: str
@@ -257,6 +290,7 @@ def api():
         location: str
         photo_info: Optional[str] = None
     
+    # Endpoint for analyzing issues
     @app.post("/analyze")
     async def analyze_issue(issue: IssueRequest):
         analyzer = IssueAnalyzer()
