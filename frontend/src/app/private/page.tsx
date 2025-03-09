@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/server'
 import MapBoxWrapper from './_components/mapboxWrapper'
+import { getPosts } from '@/lib/supabase/post';
 
 export default async function PrivatePage() {
   const supabase = await createClient()
@@ -13,6 +14,8 @@ export default async function PrivatePage() {
   if (error || !data?.user) {
     redirect('/auth/signin')
   }
+
+  const posts = await getPosts();
 
   return (
     <>

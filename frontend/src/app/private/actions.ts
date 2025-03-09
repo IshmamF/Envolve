@@ -7,7 +7,7 @@ export async function getSurroundingData () {
 
     const response = await supabase
                     .from('posts')
-                    .select('title, description, image_url, longitude, latitude, severity, id, upvotes, downvotes, resolved, location, category, tags');
+                    .select();
 
     if (response.error) {
         console.error(response.error.message)

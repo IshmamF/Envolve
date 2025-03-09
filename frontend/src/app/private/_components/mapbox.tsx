@@ -3,27 +3,12 @@ import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useState, useEffect, Suspense } from 'react';
 import MarkerDialog from './markerDialog';
+import { Post } from '@/types/Post';
 
 const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
-type info = {
-  description: string;
-  image_url: string;
-  title: string;
-  latitude: number | null;
-  longitude: number | null;
-  severity: string;
-  id: number;
-  category: string[], 
-  tags: string[],
-  upvotes: number,
-  downvotes: number,
-  resolved: number,
-  location: string
-};
-
 interface Props {
-  data: info[];
+  data: Post[];
 }
 
 function severityColor(severity: string) {
@@ -44,7 +29,7 @@ function severityColor(severity: string) {
 const MapBox = ({data}: Props) => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [userloc, setUserLoc] = useState<[number, number]>([ -73.8203, 40.7367 ]);
-  const [currInfo, setCurrInfo] = useState<info | null>(null);
+  const [currInfo, setCurrInfo] = useState<Post | null>(null);
   const [viewState, setViewState] = useState({
     longitude: userloc[0],
     latitude: userloc[1],
@@ -79,11 +64,10 @@ const MapBox = ({data}: Props) => {
 
   return (
     <>
-      <Suspense>
         <Map
           {...viewState}
           mapboxAccessToken={token}
-          style={{ width: '400px', height: '400px' }}
+          style={{ width: '100%', height: '100%' }}
           mapStyle="mapbox://styles/mapbox/streets-v12"
           onMove={(evt) => {setViewState(evt.viewState)}}
         >
@@ -101,7 +85,7 @@ const MapBox = ({data}: Props) => {
                 }}
               >
                   <img
-                    src={oost.image_url}
+                    src={oost.image_url!}
                     alt="marker"
                     width={75}
                     height={75}
@@ -111,7 +95,6 @@ const MapBox = ({data}: Props) => {
 
             ))}
         </Map>
-      </Suspense>
 
       {currInfo && (
         <MarkerDialog issue={currInfo} openDialog={openDialog} setOpenDialog={setOpenDialog} />

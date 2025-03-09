@@ -5,14 +5,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, ArrowUp, ArrowDown, CheckCircle } from "lucide-react"
+import { Post } from '@/types/Post';
+
 
 interface Props {
-  issue: Info
+  issue: Post
   openDialog: boolean
   setOpenDialog: (open: boolean) => void
-  onUpvote?: (id: number) => Promise<void>
-  onDownvote?: (id: number) => Promise<void>
-  onResolve?: (id: number) => Promise<void>
+  onUpvote?: (id: string) => Promise<void>
+  onDownvote?: (id: string) => Promise<void>
+  onResolve?: (id: string) => Promise<void>
 }
 
 export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvote, onDownvote, onResolve }: Props) {
@@ -84,7 +86,7 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
           />
           <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
             {issue.category && issue.category.map((cat, index) => (
-              <Badge key={index} variant="secondary" className="bg-black/60 backdrop-blur-sm text-white">
+              <Badge key={index} variant="secondary" className="bg-blue-100 backdrop-blur-sm text-blue-800">
                 {cat}
               </Badge>
             ))}
@@ -141,21 +143,5 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
       </DialogContent>
     </Dialog>
   )
-}
-
-type Info = {
-  description: string
-  image_url: string
-  title: string
-  latitude: number | null
-  longitude: number | null
-  severity: string
-  id: number
-  category: string[]
-  tags: string[]
-  upvotes: number
-  downvotes: number
-  resolved: number
-  location: string
 }
 

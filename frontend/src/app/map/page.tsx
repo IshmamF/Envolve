@@ -1,64 +1,52 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Map, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '@/components/navbar';
 import PostCard from '@/components/ui/postcard';
 import { getPosts } from '@/lib/supabase/post';
+import { useQuery } from '@tanstack/react-query';
 import { Post } from '@/types/Post';
+import MapBox from '@/app/private/_components/mapbox'
+
+
+interface Props {
+  data: Post[]
+}
 
 export default function MapPage() {
+  const { data, isLoading } = useQuery({queryKey:['posts'], queryFn:getPosts, staleTime: 300000})
   const [activePage, setActivePage] = useState('map');
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  //const [posts, setPosts] = useState<Post[]>([]);
+  //const [loading, setLoading] = useState(true);
   
-  useEffect(() => {
-    async function loadPosts() {
-      try {
-        const data = await getPosts();
-        setPosts(data);
-      } catch (error) {
-        console.error('Failed to fetch posts:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    loadPosts();
-  }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Navbar - Always on top */}
-      <Navbar activePage={activePage} setActivePage={setActivePage} />
-      
-      {/* Main Content - Different layouts for mobile and desktop */}
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-        {/* Desktop Sidebar (hidden on mobile) */}
-        <div className="hidden md:block md:w-[420px] lg:w-[480px] xl:w-[520px] bg-white dark:bg-gray-800 overflow-y-auto overflow-x-hidden border-r border-t border-gray-200 dark:border-gray-700">
-          <PostsContainer posts={posts} isLoading={loading} />
-        </div>
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Navbar - Always on top */}
+        <Navbar activePage={activePage} setActivePage={setActivePage} />
         
-        {/* Map View - Full width on mobile, partial on desktop */}
-        <div className="flex-1 overflow-hidden md:order-2 p-4">
-          <div className="h-[40vh] md:h-full bg-white dark:bg-gray-800 shadow-sm rounded-lg flex items-center justify-center text-xl text-gray-500 dark:text-gray-400">
-            {loading ? (
-              <span>Loading map...</span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Map size={24} />
-                Map View
-              </span>
-            )}
+        {/* Main Content - Different layouts for mobile and desktop */}
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+          {/* Desktop Sidebar (hidden on mobile) */}
+          <div className="hidden md:block md:w-[420px] lg:w-[480px] xl:w-[520px] bg-white dark:bg-gray-800 overflow-y-auto overflow-x-hidden border-r border-t border-gray-200 dark:border-gray-700">
+            <PostsContainer posts={data!} isLoading={isLoading} />
+          </div>
+          
+          {/* Map View - Full width on mobile, partial on desktop */}
+          <div className="flex-1 overflow-hidden md:order-2 p-4">
+            {isLoading ? <div>Loading...</div>:
+            (<div className="h-[40vh] md:h-full bg-white dark:bg-gray-800 shadow-sm rounded-lg flex items-center justify-center text-xl text-gray-500 dark:text-gray-400">
+              <MapBox data={data!} />
+            </div>)}
+          </div>
+          
+          {/* Mobile Posts Container (hidden on desktop) */}
+          <div className="md:hidden flex-1 overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <PostsContainer posts={data!} isLoading={isLoading} />
           </div>
         </div>
-        
-        {/* Mobile Posts Container (hidden on desktop) */}
-        <div className="md:hidden flex-1 overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-          <PostsContainer posts={posts} isLoading={loading} />
-        </div>
       </div>
-    </div>
   );
 }
 
