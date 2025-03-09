@@ -129,13 +129,13 @@ export default function HomePage() {
             Join our AI-powered platform to identify, track, and resolve environmental concerns in your neighborhood.
           </p>
           <div className="flex flex-col sm:flex-row gap-5 animate-fade-in">
-            <Link href="/posts">
+            <Link href="/map">
               <Button size="lg" className="font-medium bg-emerald-600 hover:bg-emerald-700 text-base px-6 py-6">
                 View Reported Issues
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/create">
+            <Link href="/map">
               <Button size="lg" variant="secondary" className="font-medium text-base px-6 py-6">
                 Report an Issue
                 <Camera className="ml-2 h-4 w-4" />
@@ -168,7 +168,7 @@ export default function HomePage() {
               Take a photo of an environmental issue and upload it with a title. Our AI will help generate tags and
               descriptions.
             </p>
-            <Link href="/create" className="text-emerald-600 font-medium inline-flex items-center hover:underline">
+            <Link href="/map" className="text-emerald-600 font-medium inline-flex items-center hover:underline">
               Report an issue
               <ArrowUpRight className="ml-1 h-4 w-4" />
             </Link>
@@ -183,7 +183,7 @@ export default function HomePage() {
               Our AI automatically determines severity, generates tags, and writes detailed descriptions from your photo
               and title.
             </p>
-            <Link href="/posts" className="text-emerald-600 font-medium inline-flex items-center hover:underline">
+            <Link href="/map" className="text-emerald-600 font-medium inline-flex items-center hover:underline">
               See examples
               <ArrowUpRight className="ml-1 h-4 w-4" />
             </Link>
@@ -282,7 +282,7 @@ export default function HomePage() {
             <Badge className="mb-3 bg-emerald-100 text-emerald-800 hover:bg-emerald-200">Recent Reports</Badge>
             <h2 className="text-3xl font-bold tracking-tight">Latest Environmental Issues</h2>
           </div>
-          <Link href="/posts" className="mt-4 md:mt-0">
+          <Link href="/map" className="mt-4 md:mt-0">
             <Button
               variant="outline"
               className="font-medium border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
@@ -306,7 +306,7 @@ export default function HomePage() {
             <p className="text-muted-foreground mb-8 max-w-md mx-auto">
               Be the first to report an environmental issue in your community
             </p>
-            <Link href="/create">
+            <Link href="/map">
               <Button className="bg-emerald-600 hover:bg-emerald-700">Report an Issue</Button>
             </Link>
           </div>
@@ -323,7 +323,7 @@ export default function HomePage() {
             Join our AI-powered platform today and help create a cleaner, healthier environment for everyone.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-5">
-            <Link href="/auth?mode=register">
+            <Link href="/auth/signup">
               <Button
                 size="lg"
                 variant="secondary"
@@ -332,7 +332,7 @@ export default function HomePage() {
                 Sign Up Now
               </Button>
             </Link>
-            <Link href="/create">
+            <Link href="/map">
               <Button
                 size="lg"
                 variant="outline"
@@ -366,7 +366,7 @@ export default function HomePage() {
                 <h4 className="font-semibold mb-4 text-base">Platform</h4>
                 <ul className="space-y-3">
                   <li>
-                    <Link href="/posts" className="text-slate-500 hover:text-emerald-600 transition-colors">
+                    <Link href="/map" className="text-slate-500 hover:text-emerald-600 transition-colors">
                       Browse Issues
                     </Link>
                   </li>
@@ -376,7 +376,7 @@ export default function HomePage() {
                     </Link>
                   </li>
                   <li>
-                    <Link href="/create" className="text-slate-500 hover:text-emerald-600 transition-colors">
+                    <Link href="/map" className="text-slate-500 hover:text-emerald-600 transition-colors">
                       Report Issue
                     </Link>
                   </li>
@@ -387,13 +387,13 @@ export default function HomePage() {
                 <h4 className="font-semibold mb-4 text-base">Account</h4>
                 <ul className="space-y-3">
                   <li>
-                    <Link href="/auth" className="text-slate-500 hover:text-emerald-600 transition-colors">
+                    <Link href="/auth/signin" className="text-slate-500 hover:text-emerald-600 transition-colors">
                       Sign In
                     </Link>
                   </li>
                   <li>
                     <Link
-                      href="/auth?mode=register"
+                      href="/auth/signup"
                       className="text-slate-500 hover:text-emerald-600 transition-colors"
                     >
                       Create Account
