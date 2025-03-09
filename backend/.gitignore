@@ -29,6 +29,13 @@ var/
 .idea/
 .vscode/
 *.swp
+
+_pycache__/
+
+venv/
+*/venv/
+venv
+
 *.swo
 
 # OS files
