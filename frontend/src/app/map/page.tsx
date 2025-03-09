@@ -10,10 +10,6 @@ import { Post } from '@/types/Post';
 import MapBox from '@/app/private/_components/mapbox'
 
 
-interface Props {
-  data: Post[]
-}
-
 export default function MapPage() {
   const { data, isLoading } = useQuery({queryKey:['posts'], queryFn:getPosts, staleTime: 300000})
   const [activePage, setActivePage] = useState('map');
