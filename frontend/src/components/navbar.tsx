@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, LogOut, Home, Settings, HelpCircle, Leaf } from "lucide-react"
+import { Map, Home, Settings, HelpCircle, Leaf } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { AuthButton } from "@/components/auth-button"
 
 type NavbarProps = {
   activePage: string
@@ -88,24 +89,14 @@ export default function Navbar({ activePage, setActivePage }: NavbarProps) {
             ))}
           </div>
 
-          {/* Help & Logout Buttons */}
+          {/* Help & Auth Buttons */}
           <div className="flex items-center gap-2">
             <Link href="/help">
               <Button variant="ghost" size="icon">
                 <HelpCircle size={20} />
               </Button>
             </Link>
-            <Link href="/auth/signin">
-              <Button variant="outline" className="hidden sm:flex items-center gap-2">
-                <LogOut size={20} />
-                <span className="hidden md:inline">Logout</span>
-              </Button>
-            </Link>
-            <Link href="/auth/signin" className="sm:hidden">
-              <Button variant="outline" size="icon">
-                <LogOut size={20} />
-              </Button>
-            </Link>
+            <AuthButton />
           </div>
         </div>
       </header>

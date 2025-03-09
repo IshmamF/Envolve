@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import QueryProvider from "@/utils/tanstack/QueryProvider";
 import NavbarProvider from "@/components/navbar-provider";
+import { AuthStatusCheck } from "@/components/auth-status-check";
+import { AuthProvider } from "@/app/auth/auth-context";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -31,9 +33,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <QueryProvider>
-          <NavbarProvider>
-            {children}
-          </NavbarProvider>
+          <AuthProvider>
+            <AuthStatusCheck>
+              <NavbarProvider>
+                {children}
+              </NavbarProvider>
+            </AuthStatusCheck>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>
