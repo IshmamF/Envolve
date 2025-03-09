@@ -93,25 +93,7 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
     // State for checking if we're on the client-side
     const [isDesktop, setIsDesktop] = useState(false);
     
-    // React Query setup
-    const queryClient = useQueryClient();
-    
-    // Mutations for upvote and downvote
-    const upvoteMutation = useMutation({
-      mutationFn: upVoteUpdate,
-      onSuccess: () => {
-        queryClient.invalidateQueries({queryKey: ['posts']});
-        // Check if the post status has changed after upvoting
-        checkIfPostApproved();
-      }
-    });
-    
-    const downvoteMutation = useMutation({
-      mutationFn: downVoteUpdate,
-      onSuccess: () => {
-        queryClient.invalidateQueries({queryKey: ['posts']});
-      }
-    });
+
     
     // Check if we're on the client-side and update isDesktop state
     useEffect(() => {
@@ -129,41 +111,6 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
       return () => window.removeEventListener('resize', checkIfDesktop);
     }, []);
     
-    // Subscribe to status changes
-    useEffect(() => {
-      if (post.id && !isApproved) {
-        console.log(`Setting up status subscription for post ${post.id}`);
-        
-        const unsubscribe = subscribeToPostStatusChanges((updatedPost) => {
-          // Only update if this is the post that was changed
-          if (updatedPost.id === post.id) {
-            console.log(`Post ${post.id} status changed to approved`);
-            setIsApproved(true);
-          }
-        });
-        
-        return () => {
-          console.log(`Cleaning up status subscription for post ${post.id}`);
-          unsubscribe();
-        };
-      }
-    }, [post.id, isApproved]);
-    
-    // Check if post is approved after votes change
-    const checkIfPostApproved = async () => {
-      if (post.id && !isApproved) {
-        try {
-          console.log(`Checking approval status for post ${post.id}`);
-          const status = await checkPostStatus(post.id);
-          if (status) {
-            console.log(`Post ${post.id} is now approved!`);
-            setIsApproved(true);
-          }
-        } catch (err) {
-          console.error('Error checking post status after vote:', err);
-        }
-      }
-    };
     
     // Handle vote clicks
     const handleUpvote = async () => {
@@ -172,18 +119,15 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
         setUpvotes(initialUpvotes);
         upvoteMutation.mutate({vote: initialUpvotes, post_id: post.id})
         setActiveVote(null);
-        upvoteMutation.mutate({vote: initialUpvotes, post_id: post.id});
       } else {
         // If downvote was active, reset it
         if (activeVote === 'downvote') {
           setDownvotes(initialDownvotes);
-          downvoteMutation.mutate({vote: initialDownvotes, post_id: post.id});
         }
         // Activate upvote
         setUpvotes(initialUpvotes + 1);
         upvoteMutation.mutate({vote: initialUpvotes + 1, post_id: post.id})
         setActiveVote('upvote');
-        upvoteMutation.mutate({vote: newUpvotes, post_id: post.id});
       }
     };
     
@@ -193,18 +137,15 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
         setDownvotes(initialDownvotes);
         downvoteMutation.mutate({vote: initialUpvotes, post_id: post.id})
         setActiveVote(null);
-        downvoteMutation.mutate({vote: initialDownvotes, post_id: post.id});
       } else {
         // If upvote was active, reset it
         if (activeVote === 'upvote') {
           setUpvotes(initialUpvotes);
-          upvoteMutation.mutate({vote: initialUpvotes, post_id: post.id});
         }
         // Activate downvote
         setDownvotes(initialDownvotes + 1);
         downvoteMutation.mutate({vote: initialUpvotes + 1, post_id: post.id})
         setActiveVote('downvote');
-        downvoteMutation.mutate({vote: newDownvotes, post_id: post.id});
       }
     };
     
