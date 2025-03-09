@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -23,7 +23,16 @@ import {
   ArrowLeft,
   Save,
   MapPin,
+  Eye,
+  EyeOff,
+  Lightbulb,
 } from "lucide-react";
+
+// Configuration
+const DETECTION_API_URL = process.env.NEXT_PUBLIC_DETECTION_API_URL || "";
+const DETECTION_INTERVAL = 300; // Milliseconds between detection calls (adjust for performance)
+const CONFIDENCE_THRESHOLD = 0.45; // Default confidence threshold
+const USE_NEXTJS_API = !DETECTION_API_URL; // Use NextJS API if no Modal API URL is provided
 
 interface ApiResponse {
   title: string;
@@ -31,6 +40,20 @@ interface ApiResponse {
   category: string;
   tags: string;
   severity: string;
+  environmental_task?: string;
+  image?: string;
+  detections?: {
+    env: Array<{
+      class: string;
+      confidence: number;
+      box: number[];
+    }>;
+    coco: Array<{
+      class: string;
+      confidence: number;
+      box: number[];
+    }>;
+  };
 }
 
 // Initialize Supabase client
@@ -57,6 +80,16 @@ export function ImageCaptureDialog() {
     longitude: null,
   });
 
+  // Real-time detection state
+  const [detectionEnabled, setDetectionEnabled] = useState(true);
+  const [detectionImage, setDetectionImage] = useState<string | null>(null);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const detectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const lastDetectionTime = useRef<number>(0);
+  const [latestDetections, setLatestDetections] = useState(null);
+
   // Reset state when dialog closes
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
@@ -75,6 +108,13 @@ export function ImageCaptureDialog() {
     setLoading(false);
     setApiResponse(null);
     setLocation({ latitude: null, longitude: null });
+    setDetectionImage(null);
+    setIsDetecting(false);
+    setLatestDetections(null);
+    if (detectionTimeoutRef.current) {
+      clearTimeout(detectionTimeoutRef.current);
+      detectionTimeoutRef.current = null;
+    }
   };
 
   // Get user's geolocation
@@ -94,14 +134,36 @@ export function ImageCaptureDialog() {
     }
   }, [open, page]);
 
+  // Clean up resources when component unmounts
+  useEffect(() => {
+    return () => {
+      if (detectionTimeoutRef.current) {
+        clearTimeout(detectionTimeoutRef.current);
+      }
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [stream]);
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
-      const videoElement = document.getElementById("video") as HTMLVideoElement;
+      const videoElement = videoRef.current;
       if (videoElement) {
         videoElement.srcObject = stream;
+        videoElement.onloadedmetadata = () => {
+          videoElement
+            .play()
+            .catch((err) => console.error("Error playing video:", err));
+
+          // Start real-time detection once camera is ready
+          if (detectionEnabled) {
+            scheduleNextDetection();
+          }
+        };
       }
       setStream(stream);
       setCameraActive(true);
@@ -116,13 +178,17 @@ export function ImageCaptureDialog() {
       setStream(null);
     }
     setCameraActive(false);
+
+    // Stop detection
+    if (detectionTimeoutRef.current) {
+      clearTimeout(detectionTimeoutRef.current);
+      detectionTimeoutRef.current = null;
+    }
   };
 
   const captureImage = () => {
-    const videoElement = document.getElementById("video") as HTMLVideoElement;
-    const canvasElement = document.getElementById(
-      "canvas"
-    ) as HTMLCanvasElement;
+    const videoElement = videoRef.current;
+    const canvasElement = canvasRef.current;
 
     if (!videoElement || !canvasElement) return;
 
@@ -158,17 +224,143 @@ export function ImageCaptureDialog() {
     }
   };
 
+  // Real-time detection functions
+  const captureFrame = useCallback(() => {
+    if (!cameraActive || !videoRef.current || !canvasRef.current) return null;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+
+    if (!context) return null;
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw the current video frame to the canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Get the data URL
+    return canvas.toDataURL("image/jpeg", 0.7); // Lower quality for better performance
+  }, [cameraActive]);
+
+  const detectObjects = useCallback(async () => {
+    if (!cameraActive || !detectionEnabled || isDetecting) return;
+
+    // Check if enough time has passed since last detection
+    const now = Date.now();
+    if (now - lastDetectionTime.current < DETECTION_INTERVAL) {
+      // Schedule next detection
+      detectionTimeoutRef.current = setTimeout(
+        detectObjects,
+        DETECTION_INTERVAL - (now - lastDetectionTime.current)
+      );
+      return;
+    }
+
+    const frameDataUrl = captureFrame();
+    if (!frameDataUrl) return;
+
+    setIsDetecting(true);
+    lastDetectionTime.current = now;
+
+    try {
+      // Use Modal API
+      if (DETECTION_API_URL) {
+        const response = await fetch(
+          `${DETECTION_API_URL}/detect?conf_env=${CONFIDENCE_THRESHOLD}&conf_coco=${CONFIDENCE_THRESHOLD}`,
+          {
+            method: "POST",
+            body: frameDataUrl,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Detection API returned ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Update the detection image
+        if (result && result.image) {
+          setDetectionImage(result.image);
+          setLatestDetections(result.detections);
+        }
+      }
+      // No real-time detection in NextJS API approach (would require too many requests)
+      // Just show the video stream
+
+      // Schedule next detection if camera is still active
+      if (cameraActive && detectionEnabled) {
+        detectionTimeoutRef.current = setTimeout(
+          detectObjects,
+          DETECTION_INTERVAL
+        );
+      }
+    } catch (error) {
+      console.error("Error during real-time detection:", error);
+      // Still try again after delay even if there was an error
+      if (cameraActive && detectionEnabled) {
+        detectionTimeoutRef.current = setTimeout(
+          detectObjects,
+          DETECTION_INTERVAL * 2
+        ); // Longer delay after error
+      }
+    } finally {
+      setIsDetecting(false);
+    }
+  }, [cameraActive, captureFrame, detectionEnabled, isDetecting]);
+
+  const scheduleNextDetection = useCallback(() => {
+    if (detectionTimeoutRef.current) {
+      clearTimeout(detectionTimeoutRef.current);
+    }
+
+    detectionTimeoutRef.current = setTimeout(detectObjects, DETECTION_INTERVAL);
+  }, [detectObjects]);
+
+  // Toggle real-time detection
+  const toggleDetection = () => {
+    if (detectionEnabled) {
+      // Turning off detection
+      setDetectionEnabled(false);
+      if (detectionTimeoutRef.current) {
+        clearTimeout(detectionTimeoutRef.current);
+        detectionTimeoutRef.current = null;
+      }
+      setDetectionImage(null);
+    } else {
+      // Turning on detection
+      setDetectionEnabled(true);
+      scheduleNextDetection();
+    }
+  };
+
+  // Effect for when camera becomes active
+  useEffect(() => {
+    if (cameraActive && detectionEnabled) {
+      scheduleNextDetection();
+    }
+  }, [cameraActive, detectionEnabled, scheduleNextDetection]);
+
   // API call to analyze image using React Query
   const analyzeImage = useMutation({
     mutationFn: async () => {
       if (!file) throw new Error("No image file");
 
-      const formData = new FormData();
-      formData.append("image", file);
+      // Read the file as base64
+      const fileReader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        fileReader.onload = () => resolve(fileReader.result as string);
+        fileReader.onerror = reject;
+        fileReader.readAsDataURL(file);
+      });
 
-      const response = await fetch("/api/analyze-image", {
+      // Use Modal API for analysis
+      const response = await fetch(`${DETECTION_API_URL}/analyze`, {
         method: "POST",
-        body: formData,
+        body: dataUrl,
       });
 
       if (!response.ok) {
@@ -179,17 +371,22 @@ export function ImageCaptureDialog() {
     },
     onSuccess: (data) => {
       setApiResponse(data);
+      // If API returns image with detections, update capturedImage
+      if (data.image) {
+        setCapturedImage(data.image);
+      }
       setPage(2);
     },
     onError: (error) => {
       console.error("Error analyzing image:", error);
       // Fallback to mock response in case API fails
       const mockResponse: ApiResponse = {
-        title: title,
+        title: title || "Captured Image",
         description: "This appears to be an object that requires attention.",
         category: "General",
         tags: "object,attention,review",
         severity: "Medium",
+        environmental_task: "Review and address any issues in the image.",
       };
       setApiResponse(mockResponse);
       setPage(2);
@@ -223,6 +420,7 @@ export function ImageCaptureDialog() {
         category: apiResponse.category ? [apiResponse.category] : [],
         tags: apiResponse.tags ? apiResponse.tags.split(",") : [],
         severity: apiResponse.severity,
+        environmental_task: apiResponse.environmental_task || "",
         author: userData?.user?.id || "anonymous",
         latitude: location.latitude,
         longitude: location.longitude,
@@ -456,28 +654,65 @@ export function ImageCaptureDialog() {
               {!capturedImage ? (
                 <>
                   <div className="relative w-full h-48 bg-gray-100 rounded-md overflow-hidden">
+                    {/* Main video element */}
                     <video
+                      ref={videoRef}
                       id="video"
                       className="w-full h-full object-cover"
                       autoPlay
                       playsInline
                     />
+
+                    {/* Overlay for detection results */}
+                    {detectionEnabled && detectionImage && (
+                      <img
+                        src={detectionImage}
+                        className="absolute inset-0 w-full h-full object-cover z-10"
+                        alt="Detection overlay"
+                      />
+                    )}
+
                     {!cameraActive && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Camera className="w-12 h-12 text-gray-400" />
                       </div>
                     )}
+
+                    {/* Hidden canvas for frame capture */}
+                    <canvas ref={canvasRef} id="canvas" className="hidden" />
                   </div>
 
-                  {!cameraActive ? (
-                    <Button onClick={startCamera} className="w-full">
-                      Start Camera
-                    </Button>
-                  ) : (
-                    <Button onClick={captureImage} className="w-full">
-                      Capture Image
-                    </Button>
-                  )}
+                  <div className="flex space-x-2 w-full">
+                    {!cameraActive ? (
+                      <Button onClick={startCamera} className="w-full">
+                        Start Camera
+                      </Button>
+                    ) : (
+                      <>
+                        <Button onClick={captureImage} className="flex-1">
+                          Capture Image
+                        </Button>
+                        {DETECTION_API_URL && (
+                          <Button
+                            variant="outline"
+                            onClick={toggleDetection}
+                            className="flex items-center"
+                            title={
+                              detectionEnabled
+                                ? "Turn off object detection"
+                                : "Turn on object detection"
+                            }
+                          >
+                            {detectionEnabled ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </>
               ) : (
                 <>
@@ -531,8 +766,6 @@ export function ImageCaptureDialog() {
                 </span>
               </div>
             )}
-
-            <canvas id="canvas" className="hidden" />
           </div>
         ) : (
           <div className="flex flex-col space-y-4">
@@ -572,6 +805,28 @@ export function ImageCaptureDialog() {
                 rows={3}
               />
             </div>
+
+            {apiResponse?.environmental_task && (
+              <div className="space-y-2">
+                <Label htmlFor="environmental-task">Environmental Task</Label>
+                <div className="flex p-3 bg-gray-50 rounded-md items-start">
+                  <Lightbulb className="h-5 w-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <Textarea
+                    id="environmental-task"
+                    value={apiResponse?.environmental_task || ""}
+                    onChange={(e) =>
+                      setApiResponse((prev) =>
+                        prev
+                          ? { ...prev, environmental_task: e.target.value }
+                          : prev
+                      )
+                    }
+                    rows={2}
+                    className="bg-transparent border-none focus-visible:ring-0 p-0 shadow-none"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
