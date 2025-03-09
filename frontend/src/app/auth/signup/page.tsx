@@ -39,7 +39,7 @@ export default function SignUp() {
       </Link>
 
       <div className="max-w-md w-full mx-auto rounded-lg p-4 md:p-8 shadow-input bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
-        <TextHoverEffect text="EnvAI" />
+        <TextHoverEffect text="Envolve" />
         <h2 className="text-center text-xl font-semibold text-gray-700 dark:text-gray-200 mt-2">Create your account</h2>
         
         <form className="my-6" onSubmit={handleSubmit}>
