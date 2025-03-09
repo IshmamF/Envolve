@@ -11,6 +11,7 @@ import MapBox from '@/app/private/_components/mapbox'
 
 export default function MapPage() {
   const { data, isLoading } = useQuery({queryKey:['posts'], queryFn:getPosts, staleTime: 300000})
+  useEffect(() => console.log(data), [data]);
   //const [posts, setPosts] = useState<Post[]>([]);
   //const [loading, setLoading] = useState(true);
   
