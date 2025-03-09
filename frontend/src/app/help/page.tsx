@@ -1,16 +1,11 @@
 "use client";
-import { useState } from "react";
-import Navbar from "@/components/navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export default function HelpPage() {
-  const [activePage, setActivePage] = useState("help");
- {/* just gptd shit to fill this up, edit if needed*/}
+  {/* just gptd shit to fill this up, edit if needed*/}
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navbar activePage={activePage} setActivePage={setActivePage} />
-      
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Help Center</h1>
         
@@ -56,7 +51,17 @@ export default function HelpPage() {
           </CardContent>
         </Card>
         
-
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Support</CardTitle>
+            <CardDescription>Need more help? Contact our support team</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">If you couldn't find the answer to your question in our FAQ, please contact our support team:</p>
+            <p className="mb-2"><strong>Email:</strong> support@envolve.com</p>
+            <p><strong>Hours:</strong> Monday-Friday, 9am-5pm EST</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

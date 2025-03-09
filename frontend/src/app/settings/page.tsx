@@ -1,14 +1,10 @@
 "use client";
-import { useState } from "react";
-import Navbar from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 export default function SettingsPage() {
-  const [activePage, setActivePage] = useState("settings");
-  
   // dummy for now
   const user = {
     firstName: "Joe",
@@ -18,8 +14,6 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navbar activePage={activePage} setActivePage={setActivePage} />
-      
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Settings</h1>
         

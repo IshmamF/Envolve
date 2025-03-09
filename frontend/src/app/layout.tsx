@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import QueryProvider from "@/utils/tanstack/QueryProvider";
+import NavbarProvider from "@/components/navbar-provider";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -29,7 +30,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <NavbarProvider>
+            {children}
+          </NavbarProvider>
+        </QueryProvider>
       </body>
     </html>
   );

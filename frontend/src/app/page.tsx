@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import PostCard from "@/components/PostCard"
-import Navbar from "@/components/navbar"
 import { ChevronRight, MapPin, Camera, Users, AlertTriangle, ArrowUpRight, Sparkles, Phone } from "lucide-react"
 
 // Hardcoded featured posts
@@ -98,7 +97,6 @@ const stats = [
 
 export default function HomePage() {
   const [scrollPosition, setScrollPosition] = useState(0)
-  const [activePage, setActivePage] = useState("home")
 
   useEffect(() => {
     const handleScroll = () => {
@@ -113,7 +111,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      <Navbar activePage={activePage} setActivePage={setActivePage} />
       {/* Hero Section */}
       <section className="relative h-[85vh] overflow-hidden">
         <div

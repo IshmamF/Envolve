@@ -2,7 +2,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Map, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Navbar from '@/components/navbar';
 import PostCard from '@/components/ui/postcard';
 import { getPosts } from '@/lib/supabase/post';
 import { useQuery } from '@tanstack/react-query';
@@ -12,16 +11,12 @@ import MapBox from '@/app/private/_components/mapbox'
 
 export default function MapPage() {
   const { data, isLoading } = useQuery({queryKey:['posts'], queryFn:getPosts, staleTime: 300000})
-  const [activePage, setActivePage] = useState('map');
   //const [posts, setPosts] = useState<Post[]>([]);
   //const [loading, setLoading] = useState(true);
   
 
   return (
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
-        {/* Navbar - Always on top */}
-        <Navbar activePage={activePage} setActivePage={setActivePage} />
-        
         {/* Main Content - Different layouts for mobile and desktop */}
         <div className="flex flex-col md:flex-row md:flex-1 overflow-hidden">
           {/* Desktop Sidebar (hidden on mobile) */}
