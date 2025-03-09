@@ -39,7 +39,7 @@ export default function SignIn() {
       </Link>
 
       <div className="max-w-md w-full mx-auto rounded-lg p-4 md:p-8 shadow-input bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
-        <TextHoverEffect text="EnvAI" />
+        <TextHoverEffect text="Envolve" />
         <form className="my-6" onSubmit={handleSubmit}>
           <LabelInputContainer className="mb-4">
             <Label htmlFor="email">Email Address</Label>
