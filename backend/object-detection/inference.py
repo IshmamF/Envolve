@@ -258,7 +258,7 @@ Title:
 
 3. Analyze the photo and provide the following information in JSON format:
 
-a. General information: Provide a simple description of a potential environmental fix-up task related to the image. Focus on issues such as potholes, littering, flooding, broken street lights, or similar urban/environmental problems.
+a. Description: Provide a simple description of a potential environmental fix-up task related to the image. Focus on issues such as potholes, littering, flooding, broken street lights, or similar urban/environmental problems.
 
 b. Environmental task: Describe what you can tell about the photo, including key elements, setting, and any notable features.
 
@@ -270,8 +270,8 @@ Format your response in the following JSON structure:
 
 <answer>
 {{
- "general_information": "Detailed description of the photo",
- "environmental_task": "Simple description of the potential task",
+ "description": "Simple description of the potential task",
+ "environmental_task": "Detailed description of the photo",
  "severity": X,
  "tags": ["tag1", "tag2", "tag3"]
 }}
