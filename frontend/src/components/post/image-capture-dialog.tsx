@@ -31,7 +31,7 @@ import {
 // Configuration
 const DETECTION_API_URL = process.env.NEXT_PUBLIC_DETECTION_API_URL || "";
 const DETECTION_INTERVAL = 300; // Milliseconds between detection calls (adjust for performance)
-const CONFIDENCE_THRESHOLD = 0.45; // Default confidence threshold
+const CONFIDENCE_THRESHOLD = 0.6; // Default confidence threshold
 const USE_NEXTJS_API = !DETECTION_API_URL; // Use NextJS API if no Modal API URL is provided
 
 interface ApiResponse {
@@ -89,6 +89,7 @@ export function ImageCaptureDialog() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastDetectionTime = useRef<number>(0);
   const [latestDetections, setLatestDetections] = useState(null);
+  const videoReadyRef = useRef(false); // Track if video is really ready
 
   // Reset state when dialog closes
   const handleOpenChange = (open: boolean) => {
@@ -111,6 +112,7 @@ export function ImageCaptureDialog() {
     setDetectionImage(null);
     setIsDetecting(false);
     setLatestDetections(null);
+    videoReadyRef.current = false;
     if (detectionTimeoutRef.current) {
       clearTimeout(detectionTimeoutRef.current);
       detectionTimeoutRef.current = null;
@@ -151,22 +153,31 @@ export function ImageCaptureDialog() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
+
+      setStream(stream);
+
       const videoElement = videoRef.current;
       if (videoElement) {
         videoElement.srcObject = stream;
         videoElement.onloadedmetadata = () => {
           videoElement
             .play()
-            .catch((err) => console.error("Error playing video:", err));
+            .then(() => {
+              console.log("Camera started successfully");
+              setCameraActive(true);
+              videoReadyRef.current = true;
 
-          // Start real-time detection once camera is ready
-          if (detectionEnabled) {
-            scheduleNextDetection();
-          }
+              // Add a small delay to ensure everything is initialized
+              setTimeout(() => {
+                if (detectionEnabled) {
+                  console.log("Starting initial detection");
+                  detectObjects();
+                }
+              }, 500);
+            })
+            .catch((err) => console.error("Error playing video:", err));
         };
       }
-      setStream(stream);
-      setCameraActive(true);
     } catch (error) {
       console.error("Error accessing camera:", error);
     }
@@ -178,6 +189,7 @@ export function ImageCaptureDialog() {
       setStream(null);
     }
     setCameraActive(false);
+    videoReadyRef.current = false;
 
     // Stop detection
     if (detectionTimeoutRef.current) {
@@ -226,13 +238,25 @@ export function ImageCaptureDialog() {
 
   // Real-time detection functions
   const captureFrame = useCallback(() => {
-    if (!cameraActive || !videoRef.current || !canvasRef.current) return null;
+    if (
+      !videoReadyRef.current ||
+      !cameraActive ||
+      !videoRef.current ||
+      !canvasRef.current
+    )
+      return null;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
 
     if (!context) return null;
+
+    // Check if video has valid dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.log("Video dimensions not ready yet");
+      return null;
+    }
 
     // Set canvas dimensions to match video
     canvas.width = video.videoWidth;
@@ -246,7 +270,30 @@ export function ImageCaptureDialog() {
   }, [cameraActive]);
 
   const detectObjects = useCallback(async () => {
-    if (!cameraActive || !detectionEnabled || isDetecting) return;
+    if (
+      !videoReadyRef.current ||
+      !cameraActive ||
+      !detectionEnabled ||
+      isDetecting
+    ) {
+      console.log("Skipping detection", {
+        videoReady: videoReadyRef.current,
+        cameraActive,
+        detectionEnabled,
+        isDetecting,
+      });
+
+      // Still schedule next detection if needed
+      if (cameraActive && detectionEnabled && !isDetecting) {
+        console.log("Rescheduling detection attempt");
+        detectionTimeoutRef.current = setTimeout(
+          detectObjects,
+          DETECTION_INTERVAL
+        );
+      }
+
+      return;
+    }
 
     // Check if enough time has passed since last detection
     const now = Date.now();
@@ -260,10 +307,18 @@ export function ImageCaptureDialog() {
     }
 
     const frameDataUrl = captureFrame();
-    if (!frameDataUrl) return;
+    if (!frameDataUrl) {
+      console.log("Failed to capture frame, rescheduling detection");
+      detectionTimeoutRef.current = setTimeout(
+        detectObjects,
+        DETECTION_INTERVAL
+      );
+      return;
+    }
 
     setIsDetecting(true);
     lastDetectionTime.current = now;
+    console.log("Running detection...");
 
     try {
       // Use Modal API
@@ -281,6 +336,7 @@ export function ImageCaptureDialog() {
         }
 
         const result = await response.json();
+        console.log("Detection successful");
 
         // Update the detection image
         if (result && result.image) {
@@ -317,6 +373,7 @@ export function ImageCaptureDialog() {
       clearTimeout(detectionTimeoutRef.current);
     }
 
+    console.log("Scheduling next detection");
     detectionTimeoutRef.current = setTimeout(detectObjects, DETECTION_INTERVAL);
   }, [detectObjects]);
 
@@ -337,12 +394,25 @@ export function ImageCaptureDialog() {
     }
   };
 
-  // Effect for when camera becomes active
+  // Fixed effect for camera state changes
   useEffect(() => {
-    if (cameraActive && detectionEnabled) {
-      scheduleNextDetection();
+    console.log("Camera/detection state changed", {
+      cameraActive,
+      detectionEnabled,
+    });
+
+    if (cameraActive && detectionEnabled && videoReadyRef.current) {
+      console.log(
+        "Camera active and detection enabled - starting detection cycle"
+      );
+      // Run detection immediately
+      detectObjects();
+    } else if (!detectionEnabled && detectionTimeoutRef.current) {
+      console.log("Detection disabled - clearing timeout");
+      clearTimeout(detectionTimeoutRef.current);
+      detectionTimeoutRef.current = null;
     }
-  }, [cameraActive, detectionEnabled, scheduleNextDetection]);
+  }, [cameraActive, detectionEnabled, detectObjects]);
 
   // API call to analyze image using React Query
   const analyzeImage = useMutation({
@@ -674,7 +744,7 @@ export function ImageCaptureDialog() {
 
                     {!cameraActive && (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <Camera className="flex-1 text-gray-400" />
+                        <Camera className="w-12 h-12 text-gray-400" />
                       </div>
                     )}
 
