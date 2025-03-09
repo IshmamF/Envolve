@@ -5,22 +5,56 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { TextHoverEffect } from "@/components/ui/text-hover-effect";
-import { signup } from "../actions";
+import { useAuth } from "../auth-context";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SignUp() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { signUp } = useAuth();
+  const router = useRouter();
+  const supabase = createClient();
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form submitted");
     setLoading(true);
+    setError("");
 
     try {
       const form = e.currentTarget;
-      const formData = new FormData(form);
+      const email = form.email.value;
+      const password = form.password.value;
+      const firstName = form.firstname.value;
+      const lastName = form.lastname.value;
 
-      await signup(formData);
+      // Register the user with Supabase Auth
+      const { error: signUpError, data } = await signUp(email, password);
+      
+      if (signUpError) {
+        setError(signUpError.message || "An error occurred during signup");
+        return;
+      }
+
+      // If user was created successfully, create their profile
+      if (data) {
+        // Add user profile information
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert([{
+            user: data.id,
+            first_name: firstName,
+            last_name: lastName
+          }]);
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          setError("Account created but there was an issue with your profile. Please update your profile later.");
+        }
+      }
     } catch (error) {
       console.error('Sign up error:', error);
+      setError("An error occurred during sign up");
     } finally {
       setLoading(false);
     }
@@ -28,58 +62,55 @@ export default function SignUp() {
   
   return (
     <div className="min-h-screen flex justify-center items-center relative">
-
-
       <div className="max-w-md w-full mx-auto rounded-lg p-4 md:p-8 shadow-input bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
-        <TextHoverEffect text="Envolve" />
-        <h2 className="text-center text-xl font-semibold text-gray-700 dark:text-gray-200 mt-2">Create your account</h2>
-        
+        <TextHoverEffect text="Join Envolve" />
         <form className="my-6" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <LabelInputContainer>
+          <div className="flex w-full gap-2">
+            <LabelInputContainer className="mb-4 flex-1">
               <Label htmlFor="firstname">First Name</Label>
-              <Input required name="firstname" id="firstname" placeholder="John" type="text" />
+              <Input required name="firstname" id="firstname" placeholder="First Name" />
             </LabelInputContainer>
-            
-            <LabelInputContainer>
+            <LabelInputContainer className="mb-4 flex-1">
               <Label htmlFor="lastname">Last Name</Label>
-              <Input required name="lastname" id="lastname" placeholder="Doe" type="text" />
+              <Input required name="lastname" id="lastname" placeholder="Last Name" />
             </LabelInputContainer>
           </div>
-          
           <LabelInputContainer className="mb-4">
             <Label htmlFor="email">Email Address</Label>
             <Input required name="email" id="email" placeholder="youremail@example.com" type="email" />
           </LabelInputContainer>
-          
-          <LabelInputContainer className="mb-6">
+          <LabelInputContainer className="mb-4">
             <Label htmlFor="password">Password</Label>
             <Input required name="password" id="password" placeholder="••••••••" type="password" />
           </LabelInputContainer>
 
-          <button
-            className="bg-gradient-to-br relative group/btn from-green-600 dark:from-green-800 dark:to-emerald-900 to-emerald-500 block w-full text-white rounded-md h-9 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? 'Creating account...' : 'Sign up →'}
-            <BottomGradient />
-          </button>
+          {error && (
+            <div className="text-red-500 text-sm mb-4">{error}</div>
+          )}
 
-          <div className="bg-gradient-to-r from-transparent via-neutral-300 dark:via-neutral-700 to-transparent my-6 h-[1px] w-full" />
+          <button
+            disabled={loading}
+            className={`relative group/btn w-full text-white rounded-md h-10 font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1)] ${
+              loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
+            }`}
+          >
+            {loading ? "Creating account..." : "Create Account"}
+          </button>
         </form>
         
-        <p className="text-center text-gray-600 dark:text-gray-400">
-          Already have an account?{" "}
-          <Link
-            href="/auth/signin"
-            className="text-green-500 hover:text-green-600 transition-none"
-            prefetch={true}
-            replace
-          >
-            Sign in
-          </Link>
-        </p>
+        <div className="flex flex-col space-y-4">
+          <span className="text-sm text-center">
+            Already have an account?{" "}
+            <Link
+              href="/auth/signin"
+              className="text-blue-500 hover:text-blue-700 font-semibold"
+            >
+              Sign in
+            </Link>
+          </span>
+        </div>
+
+        <BottomGradient />
       </div>
     </div>
   );
@@ -87,10 +118,7 @@ export default function SignUp() {
 
 const BottomGradient = () => {
   return (
-    <>
-      <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-gradient-to-r from-transparent via-green-500 to-transparent" />
-      <span className="group-hover/btn:opacity-100 blur-sm block transition duration-500 opacity-0 absolute h-px w-1/2 mx-auto -bottom-px inset-x-10 bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
-    </>
+    <div className="absolute inset-x-0 bottom-0 h-px w-full bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-800 to-transparent" />
   );
 };
 
@@ -102,7 +130,7 @@ const LabelInputContainer = ({
   className?: string;
 }) => {
   return (
-    <div className={cn("flex flex-col space-y-2 w-full", className)}>
+    <div className={cn("flex flex-col space-y-2", className)}>
       {children}
     </div>
   );

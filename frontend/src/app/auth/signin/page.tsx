@@ -5,22 +5,33 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { TextHoverEffect } from "@/components/ui/text-hover-effect";
-import { login } from "../actions";
+import { useAuth } from "../auth-context";
+import { useRouter } from "next/navigation";
 
 export default function SignIn() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { signIn } = useAuth();
+  const router = useRouter();
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form submitted");
     setLoading(true);
+    setError("");
 
     try {
       const form = e.currentTarget;
-      const formData = new FormData(form);
+      const email = form.email.value;
+      const password = form.password.value;
 
-      await login(formData);
+      const result = await signIn(email, password);
+      
+      if (result.error) {
+        setError("Invalid email or password");
+      }
     } catch (error) {
       console.error('Sign in error:', error);
+      setError("An error occurred during sign in");
     } finally {
       setLoading(false);
     }
@@ -41,38 +52,33 @@ export default function SignIn() {
             <Input required name="password" id="password" placeholder="••••••••" type="password" />
           </LabelInputContainer>
 
-          {/* Forgot Password Link */}
-          {/* <div className="flex justify-end mb-6">
-            <Link
-              href="/auth/forgotpassword"
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-            >
-              Forgot Password?
-            </Link>
-          </div> */}
+          {error && (
+            <div className="text-red-500 text-sm mb-4">{error}</div>
+          )}
 
           <button
-            className="bg-gradient-to-br relative group/btn from-green-600 dark:from-green-800 dark:to-emerald-900 to-emerald-500 block w-full text-white rounded-md h-9 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
-            type="submit"
             disabled={loading}
+            className={`relative group/btn w-full text-white rounded-md h-10 font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1)] ${
+              loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
+            }`}
           >
-            {loading ? 'Signing in...' : 'Sign in →'}
-            <BottomGradient />
+            {loading ? "Signing in..." : "Sign in"}
           </button>
-
-          <div className="bg-gradient-to-r from-transparent via-neutral-300 dark:via-neutral-700 to-transparent my-6 h-[1px] w-full" />
         </form>
-        <p className="text-center text-gray-600 dark:text-gray-400">
-          {`Don't have an account?`}{" "}
-          <Link
-            href="/auth/signup"
-            className="text-green-500 hover:text-green-600 transition-none"
-            prefetch={true}
-            replace
-          >
-            Sign up
-          </Link>
-        </p>
+
+        <div className="flex flex-col space-y-4">
+          <span className="text-sm text-center">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/auth/signup"
+              className="text-blue-500 hover:text-blue-700 font-semibold"
+            >
+              Sign up
+            </Link>
+          </span>
+        </div>
+
+        <BottomGradient />
       </div>
     </div>
   );
@@ -80,10 +86,7 @@ export default function SignIn() {
 
 const BottomGradient = () => {
   return (
-    <>
-      <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-gradient-to-r from-transparent via-green-500 to-transparent" />
-      <span className="group-hover/btn:opacity-100 blur-sm block transition duration-500 opacity-0 absolute h-px w-1/2 mx-auto -bottom-px inset-x-10 bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
-    </>
+    <div className="absolute inset-x-0 bottom-0 h-px w-full bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-800 to-transparent" />
   );
 };
 
@@ -95,7 +98,7 @@ const LabelInputContainer = ({
   className?: string;
 }) => {
   return (
-    <div className={cn("flex flex-col space-y-2 w-full", className)}>
+    <div className={cn("flex flex-col space-y-2", className)}>
       {children}
     </div>
   );

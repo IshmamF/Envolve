@@ -35,22 +35,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const supabase = createClient();
 
+  // Function to refresh the auth state
+  const refreshAuthState = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    } catch (error) {
+      console.error('Error refreshing auth state:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
-      } catch (error) {
-        console.error('Error checking user:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Initial check for the user
+    refreshAuthState();
 
-    checkUser();
-
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         if (session?.user) {
           setUser(session.user);
         } else {
@@ -67,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -76,9 +81,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error, data: null };
       }
       
-      if (data.user) {
-        setUser(data.user);
+      if (data?.user) {
+        setUser(data.user); // Immediately update the user state
+        await refreshAuthState(); // Force a refresh of the auth state
         router.push('/');
+        router.refresh(); // Force refresh the current route
         return { error: null, data: data.user };
       }
       
@@ -86,11 +93,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Sign in error:', error);
       return { error: error as Error, data: null };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -100,9 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error, data: null };
       }
       
-      if (data.user) {
+      if (data?.user) {
         setUser(data.user);
+        await refreshAuthState();
         router.push('/');
+        router.refresh();
         return { error: null, data: data.user };
       }
       
@@ -110,16 +122,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Sign up error:', error);
       return { error: error as Error, data: null };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
+      setLoading(true);
       await supabase.auth.signOut();
       setUser(null);
       router.push('/auth/signin');
+      router.refresh();
     } catch (error) {
       console.error('Sign out error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
