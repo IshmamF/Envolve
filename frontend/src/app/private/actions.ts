@@ -22,7 +22,7 @@ export async function upVoteUpdate(info: {vote: number, post_id: number}) {
     const supabase = await createClient();
     let response;
     try {
-        response = await supabase.from('posts').update({'upvotes': info.vote}).eq('id', info.post_id.toString)
+        response = await supabase.from('posts').update({'upvotes': info.vote}).eq('id', info.post_id)
         if (response.error) {
             console.error('error updating upvote or downvote, i dont know', response.error.message)
             return Promise.resolve({status: 500, message: "something went wrong with updating upvote/downvotes"});
@@ -38,7 +38,7 @@ export async function downVoteUpdate(info: {vote: number, post_id: number}) {
     const supabase = await createClient();
     let response;
     try {
-        response = await supabase.from('posts').update({'downvotes': info.vote}).eq('id', info.post_id.toString)
+        response = await supabase.from('posts').update({'downvotes': info.vote}).eq('id', info.post_id)
         if (response.error) {
             console.error('error updating upvote or downvote, i dont know', response.error.message)
             return Promise.resolve({status: 500, message: "something went wrong with updating upvote/downvotes"});
