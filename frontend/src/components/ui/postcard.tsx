@@ -139,8 +139,15 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
           >
             {/* Image container with severity badge */}
             <div className="relative">
-              {/* Gray placeholder instead of image */}
-              <div className="w-full h-48 bg-gray-300 dark:bg-gray-600"></div>
+              {post.image_url && post.image_url.trim() !== '' ? (
+                <img 
+                  src={post.image_url} 
+                  alt={post.title || "Post image"} 
+                  className="w-full h-48 object-cover"
+                />
+              ) : (
+                <div className="w-full h-48 bg-gray-300 dark:bg-gray-600"></div>
+              )}
               <div className="absolute top-3 right-3">
                 <Badge className={`${severity.bgColor} ${severity.textColor}`}>
                   {severity.label}
@@ -288,8 +295,15 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
           >
             {/* Image container with severity badge */}
             <div className="relative h-36 w-48 flex-shrink-0">
-              {/* Gray placeholder instead of image */}
-              <div className="h-full w-full bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
+              {post.image_url && post.image_url.trim() !== '' ? (
+                <img 
+                  src={post.image_url} 
+                  alt={post.title || "Post image"} 
+                  className="h-full w-full object-cover rounded-lg"
+                />
+              ) : (
+                <div className="h-full w-full bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
+              )}
               <div className="absolute top-2 right-2">
                 <Badge className={`${severity.bgColor} ${severity.textColor}`}>
                   {severity.label}

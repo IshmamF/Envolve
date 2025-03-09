@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "EcoAction",
+  title: "Envolve",
   description: "Take action towards change!",
 };
 

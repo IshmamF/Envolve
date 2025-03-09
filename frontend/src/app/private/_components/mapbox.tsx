@@ -50,7 +50,7 @@ const MapBox = ({data}: Props) => {
 
     function errorLocation() {
       console.log('Error getting location, using default.');
-      setUserLoc([73.8203, 40.7367]);
+      setUserLoc([-73.8203, 40.7367]);
     }
   }, []);
 
@@ -85,7 +85,7 @@ const MapBox = ({data}: Props) => {
                 }}
               >
                   <img
-                    src={oost.image_url!}
+                    src={oost.image_url && oost.image_url.trim() !== '' ? oost.image_url : "/placeholder.svg?height=75&width=75"}
                     alt="marker"
                     width={75}
                     height={75}

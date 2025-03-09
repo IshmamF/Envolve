@@ -80,7 +80,7 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
       <DialogContent className="max-w-md">
         <div className="relative w-full overflow-hidden rounded-t-lg">
           <img
-            src={issue.image_url || "/placeholder.svg?height=300&width=500"}
+            src={issue.image_url && issue.image_url.trim() !== '' ? issue.image_url : "/placeholder.svg?height=300&width=500"}
             alt={issue.title}
             className="w-full h-64 object-cover"
           />
