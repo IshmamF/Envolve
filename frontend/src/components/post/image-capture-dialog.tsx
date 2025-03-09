@@ -674,7 +674,7 @@ export function ImageCaptureDialog() {
 
                     {!cameraActive && (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <Camera className="w-12 h-12 text-gray-400" />
+                        <Camera className="flex-1 text-gray-400" />
                       </div>
                     )}
 
