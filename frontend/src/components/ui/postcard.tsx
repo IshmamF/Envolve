@@ -1,56 +1,50 @@
-import {
-  MapPin,
-  ChevronUp,
-  ChevronDown,
-  CheckCircle,
-  Phone,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
-import { VoteType } from "@/types/Vote";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { upVoteUpdate, downVoteUpdate } from "@/app/private/actions";
-import { subscribeToPostStatusChanges } from "@/lib/supabase/post";
+import { MapPin, ChevronUp, ChevronDown, CheckCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { VoteType } from '@/types/Vote';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { upVoteUpdate, downVoteUpdate } from '@/app/private/actions';
+import { subscribeToPostStatusChanges } from '@/lib/supabase/post';
 
 // helper function to format timestamptz to a relative time string
 function formatRelativeTime(timestamp: string): string {
-  if (!timestamp) return "recently";
-
+  if (!timestamp) return 'recently';
+  
   const now = new Date();
   const date = new Date(timestamp);
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
+  
   if (diffInSeconds < 60) {
-    return "just now";
+    return 'just now';
   } else if (diffInSeconds < 3600) {
     const minutes = Math.floor(diffInSeconds / 60);
-    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+    return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
   } else if (diffInSeconds < 86400) {
     const hours = Math.floor(diffInSeconds / 3600);
-    return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
   } else if (diffInSeconds < 2592000) {
     const days = Math.floor(diffInSeconds / 86400);
-    return `${days} ${days === 1 ? "day" : "days"} ago`;
+    return `${days} ${days === 1 ? 'day' : 'days'} ago`;
   } else if (diffInSeconds < 31536000) {
     const months = Math.floor(diffInSeconds / 2592000);
-    return `${months} ${months === 1 ? "month" : "months"} ago`;
+    return `${months} ${months === 1 ? 'month' : 'months'} ago`;
   } else {
     const years = Math.floor(diffInSeconds / 31536000);
-    return `${years} ${years === 1 ? "year" : "years"} ago`;
+    return `${years} ${years === 1 ? 'year' : 'years'} ago`;
   }
 }
 
 // Custom Badge component
-const Badge = ({
-  children,
-  variant,
-  className,
-}: {
-  children: React.ReactNode;
-  variant?: string;
-  className?: string;
+const Badge = ({ 
+  children, 
+  variant, 
+  className 
+}: { 
+  children: React.ReactNode; 
+  variant?: string; 
+  className?: string 
 }) => (
-  <motion.span
+  <motion.span 
     initial={{ opacity: 0, scale: 0.8 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.2 }}
@@ -82,27 +76,22 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
       low: { color: 'success', label: 'Low Severity', bgColor: 'bg-green-100 dark:bg-green-900', textColor: 'text-green-800 dark:text-green-200' }
     };
   
-    // Check if severity is valid and use it, otherwise log the issue and use low severity as default
     const severity = post.severity && 
       typeof post.severity === 'string' && 
       Object.keys(severityStyles).includes(post.severity.toLowerCase()) 
         ? severityStyles[post.severity.toLowerCase() as keyof typeof severityStyles]
         : (() => {
-            // Log the invalid severity for debugging
             if (post.severity) {
               console.warn(`Invalid severity value: ${post.severity} for post ID: ${post.id}`);
             } else {
               console.warn(`Missing severity for post ID: ${post.id}`);
             }
-            return severityStyles.low; // Default to low instead of medium
+            return severityStyles.low;
           })();
     
     // Format the created_at timestamp
     const relativeTime = formatRelativeTime(post.created_at);
-    const [isApiCalling, setIsApiCalling] = useState(false);
-    const [apiResult, setApiResult] = useState<any>(null);
-    const [apiError, setApiError] = useState<string | null>(null);
-  
+    
     // State for tracking votes and status
     const initialUpvotes = post.upvotes || 0;
     const initialDownvotes = post.downvotes || 0;
@@ -398,8 +387,7 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
               </motion.div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
-    </motion.div>
-  );
-}
+    );
+};
