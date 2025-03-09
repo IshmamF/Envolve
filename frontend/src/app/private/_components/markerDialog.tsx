@@ -6,15 +6,16 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, ArrowUp, ArrowDown, CheckCircle } from "lucide-react"
 import { Post } from '@/types/Post';
-
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { upVoteUpdate, downVoteUpdate } from "../actions"
 
 interface Props {
   issue: Post
   openDialog: boolean
   setOpenDialog: (open: boolean) => void
-  onUpvote?: (id: string) => Promise<void>
-  onDownvote?: (id: string) => Promise<void>
-  onResolve?: (id: string) => Promise<void>
+  onUpvote?: (id: number) => Promise<void>
+  onDownvote?: (id: number) => Promise<void>
+  onResolve?: (id: number) => Promise<void>
 }
 
 export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvote, onDownvote, onResolve }: Props) {
@@ -30,6 +31,20 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
   const [downvoteCount, setDownvoteCount] = useState(initialDownvotes)
   const [resolvedCount, setResolvedCount] = useState(initialResolved)
 
+  const queryClient = useQueryClient();
+  const upvoteMutation = useMutation({
+    mutationFn: upVoteUpdate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['posts']});
+    }
+  })
+  const downvoteMutation = useMutation({
+    mutationFn: downVoteUpdate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['posts']});
+    }
+  })
+
   if (!issue) {
     return null
   }
@@ -40,10 +55,12 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
     if (!hasUpvoted) {
       setHasUpvoted(true)
       setUpvoteCount((prev) => prev + 1)
+      upvoteMutation.mutate({vote: upvoteCount + 1, post_id: issue.id})
       if (onUpvote) await onUpvote(issue.id)
     } else {
       setHasUpvoted(false)
       setUpvoteCount((prev) => prev - 1)
+      upvoteMutation.mutate({vote: upvoteCount - 1, post_id: issue.id})
       if (onUpvote) await onUpvote(issue.id)
     }
   }
@@ -54,10 +71,12 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
     if (!hasDownvoted) {
       setHasDownvoted(true)
       setDownvoteCount((prev) => prev + 1)
+      downvoteMutation.mutate({vote: downvoteCount + 1, post_id: issue.id})
       if (onDownvote) await onDownvote(issue.id)
     } else {
       setHasDownvoted(false)
       setDownvoteCount((prev) => prev - 1)
+      downvoteMutation.mutate({vote: downvoteCount - 1, post_id: issue.id})
       if (onDownvote) await onDownvote(issue.id)
     }
   }

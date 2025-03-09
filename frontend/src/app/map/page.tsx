@@ -16,6 +16,7 @@ export default function MapPage() {
     queryFn: getPosts,
     staleTime: 300000,
   });
+  useEffect(() => console.log(data), [data]);
   //const [posts, setPosts] = useState<Post[]>([]);
   //const [loading, setLoading] = useState(true);
 
