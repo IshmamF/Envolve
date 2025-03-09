@@ -14,7 +14,7 @@ interface SendToAPIProps {
 }
 
 const SendToAPI = ({ image, onComplete }: SendToAPIProps) => {
-  const { isLoading, error } = useMutation({
+  const { isPending, error } = useMutation({
     mutationFn: async () => {
       const formData = new FormData();
       formData.append("image", image);
@@ -43,7 +43,7 @@ const SendToAPI = ({ image, onComplete }: SendToAPIProps) => {
     );
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="flex items-center space-x-2 text-blue-500">
         <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
