@@ -27,14 +27,14 @@ export default function MapPage() {
         <Navbar activePage={activePage} setActivePage={setActivePage} />
         
         {/* Main Content - Different layouts for mobile and desktop */}
-        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row md:flex-1 overflow-hidden">
           {/* Desktop Sidebar (hidden on mobile) */}
           <div className="hidden md:block md:w-[420px] lg:w-[480px] xl:w-[520px] bg-white dark:bg-gray-800 overflow-y-auto overflow-x-hidden border-r border-t border-gray-200 dark:border-gray-700">
             <PostsContainer posts={data!} isLoading={isLoading} />
           </div>
           
           {/* Map View - Full width on mobile, partial on desktop */}
-          <div className="flex-1 overflow-hidden md:order-2 p-4">
+          <div className="md:flex-1 overflow-hidden md:order-2 p-4">
             {isLoading ? <div>Loading...</div>:
             (<div className="h-[40vh] md:h-full bg-white dark:bg-gray-800 shadow-sm rounded-lg flex items-center justify-center text-xl text-gray-500 dark:text-gray-400">
               <MapBox data={data!} />
@@ -42,9 +42,10 @@ export default function MapPage() {
           </div>
           
           {/* Mobile Posts Container (hidden on desktop) */}
-          <div className="md:hidden flex-1 overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <div className="md:hidden h-[calc(60vh-64px)] overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
             <PostsContainer posts={data!} isLoading={isLoading} />
           </div>
+          
         </div>
       </div>
   );
