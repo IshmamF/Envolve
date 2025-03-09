@@ -107,27 +107,31 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
           <p className="text-sm text-muted-foreground">{issue.description}</p>
 
           <div className="mt-4 pb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-1 bg-green-600/30"
-                onClick={handleUpvote}
-              >
-                <ArrowUp size={16} />
-                <span>{upvoteCount}</span>
-              </Button>
+            {issue.isPoll ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1 bg-green-600/30"
+                  onClick={handleUpvote}
+                >
+                  <ArrowUp size={16} />
+                  <span>{upvoteCount}</span>
+                </Button>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-1 bg-red-600/30"
-                onClick={handleDownvote}
-              >
-                <ArrowDown size={16} />
-                <span>{downvoteCount}</span>
-              </Button>
-            </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1 bg-red-600/30"
+                  onClick={handleDownvote}
+                >
+                  <ArrowDown size={16} />
+                  <span>{downvoteCount}</span>
+                </Button>
+              </div>
+            ) : (
+              <div></div>
+            )}
 
             <Button
               variant={hasResolved ? "default" : "outline"}

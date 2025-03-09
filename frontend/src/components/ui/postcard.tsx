@@ -207,70 +207,74 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
                 transition={{ delay: 0.4, duration: 0.2 }}
               >
                 <div className="flex space-x-4">
-                  {/* mobile upvote and downvote */}
-                  <div className="flex items-center">
-                    <motion.button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUpvote();
-                      }}
-                      className={`flex items-center justify-center w-9 h-9 rounded-full ${
-                        activeVote === 'upvote'
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-2 border-blue-500'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400'
-                      }`}
-                      whileTap={{ scale: 0.9 }}
-                      whileHover={{ 
-                        scale: 1.1, 
-                        transition: { 
-                          duration: 0.1,
-                          ease: "easeIn"
-                        } 
-                      }}
-                      style={{ 
-                        transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)"
-                      }}
-                    >
-                      <ChevronUp size={24} />
-                    </motion.button>
-                    <span className={`ml-1 font-bold ${
-                      activeVote === 'upvote' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
-                    }`}>
-                      {upvotes}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <motion.button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownvote();
-                      }}
-                      className={`flex items-center justify-center w-9 h-9 rounded-full ${
-                        activeVote === 'downvote'
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400'
-                      }`}
-                      whileTap={{ scale: 0.9 }}
-                      whileHover={{ 
-                        scale: 1.1, 
-                        transition: { 
-                          duration: 0.1,
-                          ease: "easeIn"
-                        } 
-                      }}
-                      style={{ 
-                        transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)"
-                      }}
-                    >
-                      <ChevronDown size={24} />
-                    </motion.button>
-                    <span className={`ml-1 font-bold ${
-                      activeVote === 'downvote' ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'
-                    }`}>
-                      {downvotes}
-                    </span>
-                  </div>
+                  {/* mobile upvote and downvote - only shown for polls */}
+                  {post.isPoll && (
+                    <>
+                      <div className="flex items-center">
+                        <motion.button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUpvote();
+                          }}
+                          className={`flex items-center justify-center w-9 h-9 rounded-full ${
+                            activeVote === 'upvote'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-2 border-blue-500'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400'
+                          }`}
+                          whileTap={{ scale: 0.9 }}
+                          whileHover={{ 
+                            scale: 1.1, 
+                            transition: { 
+                              duration: 0.1,
+                              ease: "easeIn"
+                            } 
+                          }}
+                          style={{ 
+                            transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)"
+                          }}
+                        >
+                          <ChevronUp size={24} />
+                        </motion.button>
+                        <span className={`ml-1 font-bold ${
+                          activeVote === 'upvote' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                        }`}>
+                          {upvotes}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <motion.button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownvote();
+                          }}
+                          className={`flex items-center justify-center w-9 h-9 rounded-full ${
+                            activeVote === 'downvote'
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400'
+                          }`}
+                          whileTap={{ scale: 0.9 }}
+                          whileHover={{ 
+                            scale: 1.1, 
+                            transition: { 
+                              duration: 0.1,
+                              ease: "easeIn"
+                            } 
+                          }}
+                          style={{ 
+                            transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)"
+                          }}
+                        >
+                          <ChevronDown size={24} />
+                        </motion.button>
+                        <span className={`ml-1 font-bold ${
+                          activeVote === 'downvote' ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'
+                        }`}>
+                          {downvotes}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 
                 <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -363,71 +367,75 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
                 transition={{ delay: 0.4, duration: 0.2 }}
               >
                 <div className="flex space-x-3">
-                  {/* Upvote button - Desktop */}
-                  <div className="flex items-center">
-                    <motion.button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUpvote();
-                      }}
-                      className={`flex items-center justify-center rounded-full p-1 ${
-                        activeVote === 'upvote'
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400'
-                      }`}
-                      whileTap={{ scale: 0.9 }}
-                      whileHover={{ 
-                        scale: 1.2, 
-                        transition: {
-                          duration: 0.1,
-                          ease: "easeIn"
-                        }
-                      }}
-                      style={{ 
-                        transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)"
-                      }}
-                    >
-                      <ChevronUp size={16} />
-                    </motion.button>
-                    <span className={`text-xs ml-1 ${
-                      activeVote === 'upvote' ? 'text-blue-600 dark:text-blue-400 font-medium' : ''
-                    }`}>
-                      {upvotes}
-                    </span>
-                  </div>
-                  
-                  {/* Downvote button - Desktop */}
-                  <div className="flex items-center">
-                    <motion.button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownvote();
-                      }}
-                      className={`flex items-center justify-center rounded-full p-1 ${
-                        activeVote === 'downvote'
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400'
-                      }`}
-                      whileTap={{ scale: 0.9 }}
-                      whileHover={{ 
-                        scale: 1.2, 
-                        transition: {
-                          duration: 0.1,
-                          ease: "easeIn"
-                        }
-                      }}
-                      style={{ 
-                        transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)"
-                      }}
-                    >
-                      <ChevronDown size={16} />
-                    </motion.button>
-                    <span className={`text-xs ml-1 ${
-                      activeVote === 'downvote' ? 'text-red-600 dark:text-red-400 font-medium' : ''
-                    }`}>
-                      {downvotes}
-                    </span>
-                  </div>
+                  {/* Upvote button - Desktop - only shown for polls */}
+                  {post.isPoll && (
+                    <>
+                      <div className="flex items-center">
+                        <motion.button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUpvote();
+                          }}
+                          className={`flex items-center justify-center rounded-full p-1 ${
+                            activeVote === 'upvote'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400'
+                          }`}
+                          whileTap={{ scale: 0.9 }}
+                          whileHover={{ 
+                            scale: 1.2, 
+                            transition: {
+                              duration: 0.1,
+                              ease: "easeIn"
+                            }
+                          }}
+                          style={{ 
+                            transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)"
+                          }}
+                        >
+                          <ChevronUp size={16} />
+                        </motion.button>
+                        <span className={`text-xs ml-1 ${
+                          activeVote === 'upvote' ? 'text-blue-600 dark:text-blue-400 font-medium' : ''
+                        }`}>
+                          {upvotes}
+                        </span>
+                      </div>
+                      
+                      {/* Downvote button - Desktop */}
+                      <div className="flex items-center">
+                        <motion.button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownvote();
+                          }}
+                          className={`flex items-center justify-center rounded-full p-1 ${
+                            activeVote === 'downvote'
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400'
+                          }`}
+                          whileTap={{ scale: 0.9 }}
+                          whileHover={{ 
+                            scale: 1.2, 
+                            transition: {
+                              duration: 0.1,
+                              ease: "easeIn"
+                            }
+                          }}
+                          style={{ 
+                            transition: "all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)"
+                          }}
+                        >
+                          <ChevronDown size={16} />
+                        </motion.button>
+                        <span className={`text-xs ml-1 ${
+                          activeVote === 'downvote' ? 'text-red-600 dark:text-red-400 font-medium' : ''
+                        }`}>
+                          {downvotes}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 
                 <span className="text-xs text-gray-500 dark:text-gray-400">

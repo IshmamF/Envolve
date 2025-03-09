@@ -15,6 +15,7 @@ export type Post = {
   category: string[];
   tags: string[];
   severity: 'high' | 'medium' | 'low';
+  isPoll?: boolean;
 }; 
 
 export interface HardCodedPost {
