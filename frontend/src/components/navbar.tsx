@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, Home, Settings, HelpCircle } from "lucide-react"
+import { Map, Home, Settings, HelpCircle, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AuthButton } from "@/components/auth-button"
 import { Logo } from "@/components/logo"
@@ -20,6 +20,7 @@ export default function Navbar({ activePage, setActivePage }: NavbarProps) {
   const navItems = [
     { id: "home", label: "Home", icon: <Home size={20} />, href: "/" },
     { id: "map", label: "Map", icon: <Map size={20} />, href: "/map" },
+    { id: "leaderboard", label: "Leaderboard", icon: <Trophy size={20} />, href: "/leaderboard" },
     { id: "settings", label: "Settings", icon: <Settings size={20} />, href: "/settings" },
   ]
 
