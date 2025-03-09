@@ -24,8 +24,6 @@ function severityColor(severity: string) {
   }
 }
 
-
-
 const MapBox = ({data}: Props) => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [userloc, setUserLoc] = useState<[number, number]>([ -73.8203, 40.7367 ]);
@@ -36,7 +34,6 @@ const MapBox = ({data}: Props) => {
     zoom: 13
   });
   
-
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(successLocation, errorLocation, {
       enableHighAccuracy: true
@@ -49,9 +46,9 @@ const MapBox = ({data}: Props) => {
     }
 
     function errorLocation() {
-      console.log('Error getting location, using default.');
-      setUserLoc([-73.8203, 40.7367]);
-    }
+      console.log('Location error');
+      setUserLoc([-73.8203, 40.7367]);    }
+
   }, []);
 
   useEffect(() => {
@@ -64,6 +61,7 @@ const MapBox = ({data}: Props) => {
 
   return (
     <>
+      <div className="w-full h-full overflow-hidden rounded-lg">
         <Map
           {...viewState}
           mapboxAccessToken={token}
@@ -89,15 +87,31 @@ const MapBox = ({data}: Props) => {
                     alt="marker"
                     width={75}
                     height={75}
-                    className={`border-8 ${severityColor(oost.severity)} inline-block rounded-xl`}
+                    className={
+                      `transform translate-x-0 marker-image w-8 h-8 cursor-pointer border-2 ${oost.severity ? severityColor(oost.severity) : 'border-gray-500'} rounded-full object-cover active:scale-105 hover:border-white active:border-white`
+                    }
                   />
               </Marker>
-
             ))}
-        </Map>
 
+            {/* User Location Marker */}
+            <Marker longitude={userloc[0]} latitude={userloc[1]} anchor="center">
+                <div className="relative">
+                  <div className="w-6 h-6 bg-blue-500 rounded-full border-2 border-white animate-pulse" />
+                  <div className="absolute w-12 h-12 bg-blue-500/30 rounded-full -top-3 -left-3 animate-ping" />
+                </div>
+            </Marker>
+          
+        </Map>
+      </div>
+
+      {/* Dialog for displaying marker info */}
       {currInfo && (
-        <MarkerDialog issue={currInfo} openDialog={openDialog} setOpenDialog={setOpenDialog} />
+        <MarkerDialog 
+          issue={currInfo} 
+          openDialog={openDialog} 
+          setOpenDialog={setOpenDialog} 
+        />
       )}
     </>
   );

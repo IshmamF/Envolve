@@ -376,7 +376,7 @@ export default function HomePage() {
                 <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white">
                   <MapPin size={18} />
                 </span>
-                <span className="font-medium text-xl">EcoCallout</span>
+                <span className="font-medium text-xl">Envolve</span>
               </Link>
               <p className="text-sm text-slate-500 mt-3 max-w-xs">
                 A community-driven platform to report and resolve environmental issues.
@@ -455,7 +455,7 @@ export default function HomePage() {
           <Separator className="my-10 bg-slate-200" />
 
           <div className="text-center text-sm text-slate-500">
-            <p>© {new Date().getFullYear()} EcoCallout. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Envolve. All rights reserved.</p>
           </div>
         </div>
       </footer>
