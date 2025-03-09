@@ -151,17 +151,9 @@ const PostForm = ({ image, apiData }: PostFormProps) => {
       <form className="w-full space-y-4" onSubmit={e => e.preventDefault()}>
         {Object.entries(formData).map(([key, value]) => {
           if (key === 'latitude' || key === 'longitude' || key === 'author') return null;
-          
-          return key === 'description' ? (
-            <textarea
-              key={key}
-              name={key}
-              value={value}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-              placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
-            />
-          ) : (
+          if (key === 'title') return (
+            <>
+            <label htmlFor={key}><strong>{key.charAt(0).toUpperCase() + key.slice(1)}</strong></label>
             <input
               key={key}
               type="text"
@@ -171,6 +163,35 @@ const PostForm = ({ image, apiData }: PostFormProps) => {
               className="w-full p-2 border rounded"
               placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
             />
+            </>
+          )
+          if (key === 'description') return (
+            <>
+            <label htmlFor={key}><strong>{key.charAt(0).toUpperCase() + key.slice(1)}</strong></label>
+            <textarea
+              key={key}
+              name={key}
+              value={value}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded"
+              placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
+            />
+            </>
+          )
+          else return (
+            <>
+            <label htmlFor={key}><strong>{key.charAt(0).toUpperCase() + key.slice(1)}</strong></label>
+            <input
+              key={key}
+              type="text"
+              name={key}
+              value={value}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded"
+              placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
+              disabled
+            />
+            </>
           );
         })}
 
