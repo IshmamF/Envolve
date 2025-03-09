@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, ArrowUp, ArrowDown, CheckCircle } from "lucide-react"
@@ -49,7 +49,7 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
   }
 
   const handleDownvote = async () => {
-    if (hasUpvoted) return 
+    if (hasUpvoted) return
 
     if (!hasDownvoted) {
       setHasDownvoted(true)
@@ -77,7 +77,7 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
   return (
     <Dialog open={openDialog} onOpenChange={setOpenDialog}>
       <DialogTrigger></DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby="issue-description">
         <div className="relative w-full overflow-hidden rounded-t-lg">
           <img
             src={issue.image_url && issue.image_url.trim() !== '' ? issue.image_url : "/placeholder.svg?height=300&width=500"}
@@ -93,10 +93,13 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
           </div>
         </div>
 
-        <DialogHeader className="px-4 mt-2">
-          <DialogTitle className="text-xl font-semibold">{issue.title}</DialogTitle>
-          <div className="flex items-center text-sm text-muted-foreground mt-1 gap-3">
-            <div className="flex items-center gap-1">
+        <DialogHeader>
+          <DialogTitle>{issue.title}</DialogTitle>
+          <DialogDescription id="issue-description">
+            Environmental issue reported at {issue.location || `coordinates: ${issue.longitude}, ${issue.latitude}`}
+          </DialogDescription>
+          <div className="text-xs text-muted-foreground flex flex-col gap-1 mt-1">
+            <div className="flex items-center gap-1 text-xs">
               <MapPin size={14} />
               <span className="line-clamp-1">{issue.location || `${issue.longitude}, ${issue.latitude}`}</span>
             </div>
