@@ -2,6 +2,8 @@ import modal
 import base64
 from pathlib import Path
 import os
+import json
+import anthropic
 
 image = (
     modal.Image.debian_slim(python_version="3.10")
@@ -9,7 +11,7 @@ image = (
         ["libgl1-mesa-glx", "libglib2.0-0"]
     )
     .pip_install(
-        ["ultralytics", "opencv-python", "fastapi", "python-multipart", "Pillow"]
+        ["ultralytics", "opencv-python", "fastapi", "python-multipart", "Pillow", "anthropic"]
     )
 )
 
@@ -17,492 +19,6 @@ volume = modal.Volume.from_name("yolo-finetune", create_if_missing=True)
 volume_path = Path("/root") / "data"
 
 app = modal.App("yolo-dual-model-detection", image=image, volumes={volume_path: volume})
-
-STATIC_DIR = Path(__file__).parent / "static"
-STATIC_DIR.mkdir(exist_ok=True)
-
-html_content = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>YOLO Dual Model Detection</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            margin: 0; 
-            padding: 20px; 
-            background-color: #f0f0f0;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        .video-container { 
-            position: relative;
-            margin: 0 auto; 
-            width: 640px; 
-            height: 480px; 
-            border: 1px solid #ccc;
-            background-color: #000;
-        }
-        @media (max-width: 680px) {
-            .video-container {
-                width: 100%;
-                height: auto;
-                aspect-ratio: 4/3;
-            }
-        }
-        #webcam, #overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        #overlay {
-            z-index: 10;
-        }
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .camera-controls {
-            margin: 10px 0;
-        }
-        .slider-container {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 600px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .slider-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex: 1;
-            padding: 0 10px;
-            min-width: 150px;
-            margin-bottom: 10px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            margin: 0 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        #toggle-camera {
-            background-color: #4a4a4a;
-        }
-        #toggle-camera:hover {
-            background-color: #5a5a5a;
-        }
-        .status {
-            margin-top: 10px;
-            font-style: italic;
-            color: #666;
-        }
-        #fps-counter, #latency-counter {
-            position: absolute;
-            background-color: rgba(0,0,0,0.5);
-            color: white;
-            padding: 5px;
-            border-radius: 3px;
-            z-index: 15;
-        }
-        #fps-counter {
-            top: 10px;
-            left: 10px;
-        }
-        #latency-counter {
-            top: 10px;
-            right: 10px;
-        }
-        .no-webcam {
-            color: red;
-            padding: 20px;
-            display: none;
-        }
-        .model-info {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #e9f7ef;
-            border-radius: 5px;
-        }
-        .class-list {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        .class-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 14px;
-        }
-        .coco-class {
-            background-color: #c8e6c9;
-            color: #2e7d32;
-        }
-        .custom-class {
-            background-color: #ffcdd2;
-            color: #c62828;
-        }
-        input[type=range] {
-            width: 100%;
-        }
-        .performance-settings {
-            margin-top: 15px;
-            padding: 10px;
-            background-color: #f5f5f5;
-            border-radius: 5px;
-            width: 100%;
-            max-width: 600px;
-        }
-        @media only screen and (max-width: 768px) {
-            .camera-controls {
-                display: block;
-            }
-        }
-        
-        @media only screen and (min-width: 769px) {
-            .camera-controls {
-                display: none;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>YOLO Dual Model Detection</h1>
-        
-        <div class="model-info">
-            <h3>Dual Model Detection System</h3>
-            <p>This system uses two YOLO models simultaneously:</p>
-            <ul style="text-align: left; display: inline-block;">
-                <li><strong style="color: #2e7d32;">COCO Model (Green):</strong> Detects common objects like people, cars, phones, etc.</li>
-                <li><strong style="color: #c62828;">Environmental Model (Red):</strong> Detects environmental issues like potholes, litter, etc.</li>
-            </ul>
-            
-            <div class="class-list">
-                <div class="class-badge custom-class">Pothole</div>
-                <div class="class-badge custom-class">Litter</div>
-                <div class="class-badge custom-class">Flood</div>
-                <div class="class-badge custom-class">Light</div>
-                <div class="class-badge coco-class">Person</div>
-                <div class="class-badge coco-class">Car</div>
-                <div class="class-badge coco-class">Phone</div>
-                <div class="class-badge coco-class">+77 more</div>
-            </div>
-        </div>
-        
-        <div class="video-container">
-            <video id="webcam" autoplay playsinline></video>
-            <canvas id="overlay"></canvas>
-            <div id="fps-counter">FPS: 0</div>
-            <div id="latency-counter">Latency: 0ms</div>
-        </div>
-        
-        <div class="no-webcam" id="no-webcam">
-            <h2>Webcam not available</h2>
-            <p>Please ensure your browser has permission to access your webcam.</p>
-        </div>
-        
-        <div class="controls">
-            <div class="camera-controls">
-                <button id="toggle-camera">Switch to Front Camera</button>
-            </div>
-            
-            <div class="slider-container">
-                <div class="slider-group">
-                    <label for="env-confidence">Environmental Model: <span id="env-confidence-value">0.25</span></label>
-                    <input type="range" id="env-confidence" min="0.1" max="0.9" step="0.05" value="0.25">
-                </div>
-                <div class="slider-group">
-                    <label for="coco-confidence">COCO Model: <span id="coco-confidence-value">0.25</span></label>
-                    <input type="range" id="coco-confidence" min="0.1" max="0.9" step="0.05" value="0.25">
-                </div>
-            </div>
-            
-            <div class="performance-settings">
-                <h4>Performance Settings</h4>
-                <div class="slider-container">
-                    <div class="slider-group">
-                        <label for="input-size">Image Size: <span id="input-size-value">480</span>px</label>
-                        <input type="range" id="input-size" min="160" max="640" step="32" value="480">
-                    </div>
-                    <div class="slider-group">
-                        <label for="frame-interval">Frame Interval: <span id="frame-interval-value">300</span>ms</label>
-                        <input type="range" id="frame-interval" min="100" max="1000" step="50" value="300">
-                    </div>
-                </div>
-                <div>
-                    <label for="adaptive-rate">
-                        <input type="checkbox" id="adaptive-rate" checked> Adaptive Frame Rate
-                    </label>
-                </div>
-            </div>
-            
-            <div style="margin-top: 15px;">
-                <button id="start-btn">Start Detection</button>
-                <button id="stop-btn" disabled>Stop Detection</button>
-            </div>
-        </div>
-        
-        <div class="status" id="status">Ready to start detection.</div>
-    </div>
-
-    <script>
-        const video = document.getElementById('webcam');
-        const overlay = document.getElementById('overlay');
-        const ctx = overlay.getContext('2d');
-        const startBtn = document.getElementById('start-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        const statusElement = document.getElementById('status');
-        const fpsCounter = document.getElementById('fps-counter');
-        const latencyCounter = document.getElementById('latency-counter');
-        const noWebcamMessage = document.getElementById('no-webcam');
-        
-        const envConfidenceSlider = document.getElementById('env-confidence');
-        const envConfidenceValue = document.getElementById('env-confidence-value');
-        const cocoConfidenceSlider = document.getElementById('coco-confidence');
-        const cocoConfidenceValue = document.getElementById('coco-confidence-value');
-        const inputSizeSlider = document.getElementById('input-size');
-        const inputSizeValue = document.getElementById('input-size-value');
-        const frameIntervalSlider = document.getElementById('frame-interval');
-        const frameIntervalValue = document.getElementById('frame-interval-value');
-        const adaptiveRateCheckbox = document.getElementById('adaptive-rate');
-        
-        let isCapturing = false;
-        let captureInterval;
-        let lastFrameTime = 0;
-        let frameCount = 0;
-        let fpsUpdateInterval;
-        let currentInterval = parseInt(frameIntervalSlider.value);
-        let processingFrame = false;
-        let latencyHistory = [];
-        let currentFacingMode = "environment";
-        let mediaStream = null;
-        
-        function updateCanvasSize() {
-            const container = document.querySelector('.video-container');
-            overlay.width = container.offsetWidth;
-            overlay.height = container.offsetHeight;
-        }
-        
-        updateCanvasSize();
-        window.addEventListener('resize', updateCanvasSize);
-        
-        envConfidenceSlider.addEventListener('input', function() {
-            envConfidenceValue.textContent = this.value;
-        });
-        cocoConfidenceSlider.addEventListener('input', function() {
-            cocoConfidenceValue.textContent = this.value;
-        });
-        inputSizeSlider.addEventListener('input', function() {
-            inputSizeValue.textContent = this.value;
-        });
-        frameIntervalSlider.addEventListener('input', function() {
-            frameIntervalValue.textContent = this.value;
-            currentInterval = parseInt(this.value);
-            
-            if (isCapturing && captureInterval) {
-                clearInterval(captureInterval);
-                captureInterval = setInterval(triggerCapture, currentInterval);
-            }
-        });
-        
-        async function toggleCamera() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => {
-                    track.stop();
-                });
-            }
-            
-            currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-            
-            try {
-                const constraints = {
-                    video: { 
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        facingMode: { ideal: currentFacingMode }
-                    }
-                };
-                
-                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = mediaStream;
-                await video.play();
-                
-                document.getElementById('toggle-camera').innerText = 
-                    currentFacingMode === "environment" ? "Switch to Front Camera" : "Switch to Back Camera";
-                
-                return true;
-            } catch (err) {
-                console.error('Error switching camera:', err);
-                return false;
-            }
-        }
-        
-        async function setupWebcam() {
-            return await toggleCamera();
-        }
-        
-        async function startCapture() {
-            if (!video.srcObject) {
-                const success = await setupWebcam();
-                if (!success) return;
-            }
-            
-            isCapturing = true;
-            startBtn.disabled = true;
-            stopBtn.disabled = false;
-            statusElement.textContent = 'Detection running...';
-            
-            lastFrameTime = performance.now();
-            frameCount = 0;
-            latencyHistory = [];
-            fpsUpdateInterval = setInterval(updateFPS, 1000);
-            
-            currentInterval = parseInt(frameIntervalSlider.value);
-            captureInterval = setInterval(triggerCapture, currentInterval);
-        }
-        
-        function triggerCapture() {
-            if (!isCapturing) return;
-            
-            if (!processingFrame || !adaptiveRateCheckbox.checked) {
-                captureFrame();
-            }
-        }
-        
-        function stopCapture() {
-            isCapturing = false;
-            clearInterval(captureInterval);
-            clearInterval(fpsUpdateInterval);
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-            statusElement.textContent = 'Detection stopped.';
-            
-            ctx.clearRect(0, 0, overlay.width, overlay.height);
-        }
-        
-        async function captureFrame() {
-            if (!isCapturing) return;
-            
-            processingFrame = true;
-            const startTime = performance.now();
-            
-            try {
-                const targetSize = parseInt(inputSizeSlider.value);
-                
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = targetSize;
-                tempCanvas.height = targetSize * (video.videoHeight / video.videoWidth);
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-                
-                const dataURL = tempCanvas.toDataURL('image/jpeg', 0.8);
-                
-                const envConfidence = parseFloat(envConfidenceSlider.value);
-                const cocoConfidence = parseFloat(cocoConfidenceSlider.value);
-                
-                const response = await fetch(`/predict?conf_env=${envConfidence}&conf_coco=${cocoConfidence}`, {
-                    method: 'POST',
-                    body: dataURL
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const resultDataURL = await response.text();
-                
-                if (isCapturing) {
-                    const img = new Image();
-                    img.onload = () => {
-                        ctx.clearRect(0, 0, overlay.width, overlay.height);
-                        ctx.drawImage(img, 0, 0, overlay.width, overlay.height);
-                        
-                        frameCount++;
-                    };
-                    img.src = resultDataURL;
-                }
-                
-                const latency = performance.now() - startTime;
-                latencyHistory.push(latency);
-                if (latencyHistory.length > 10) latencyHistory.shift();
-                
-                const avgLatency = latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length;
-                latencyCounter.textContent = `Latency: ${Math.round(avgLatency)}ms`;
-                
-                if (adaptiveRateCheckbox.checked) {
-                    const newInterval = Math.max(100, Math.min(1000, Math.round(avgLatency * 1.2)));
-                    
-                    if (Math.abs(newInterval - currentInterval) > 50) {
-                        currentInterval = newInterval;
-                        clearInterval(captureInterval);
-                        captureInterval = setInterval(triggerCapture, currentInterval);
-                        
-                        frameIntervalSlider.value = currentInterval;
-                        frameIntervalValue.textContent = currentInterval;
-                    }
-                }
-                
-            } catch (err) {
-                console.error('Error processing frame:', err);
-                statusElement.textContent = 'Error: ' + err.message;
-            } finally {
-                processingFrame = false;
-            }
-        }
-        
-        function updateFPS() {
-            const now = performance.now();
-            const elapsed = now - lastFrameTime;
-            const fps = Math.round((frameCount / elapsed) * 1000);
-            fpsCounter.textContent = `FPS: ${fps}`;
-            
-            frameCount = 0;
-            lastFrameTime = now;
-        }
-        
-        startBtn.addEventListener('click', startCapture);
-        stopBtn.addEventListener('click', stopCapture);
-        document.getElementById('toggle-camera').addEventListener('click', async () => {
-            const wasCapturing = isCapturing;
-            if (wasCapturing) {
-                stopCapture();
-            }
-            
-            await toggleCamera();
-            
-            if (wasCapturing) {
-                startCapture();
-            }
-        });
-        
-        setupWebcam();
-    </script>
-</body>
-</html>
-"""
-
-with open(STATIC_DIR / "index.html", "w") as f:
-    f.write(html_content)
 
 models_cache = {}
 
@@ -616,6 +132,12 @@ class DualModelDetection:
             
             vis_img = img.copy()
             
+            # Initialize detections list to return detailed detection data
+            detections = {
+                'env': [],
+                'coco': []
+            }
+            
             if self.env_model is not None:
                 try:
                     env_results = self.env_model(img, stream=True, conf=conf_env, verbose=False)
@@ -627,12 +149,12 @@ class DualModelDetection:
                             x1, y1, x2, y2 = box.xyxy[0]
                             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
                             
-                            confidence = math.ceil((box.conf[0]*100))/100
+                            confidence = float(box.conf[0])
                             cls_id = int(box.cls[0])
                             
                             cls_name = self.env_classes.get(cls_id, f"Env-{cls_id}")
                             
-                            color = (0, 0, 255)
+                            color = (0, 0, 255)  # Red for environmental issues
                             cv2.rectangle(vis_img, (x1, y1), (x2, y2), color, 2)
                             
                             label = f"{cls_name} {confidence:.2f}"
@@ -641,6 +163,13 @@ class DualModelDetection:
                             cv2.rectangle(vis_img, (x1, y1), c2, color, -1, cv2.LINE_AA)
                             cv2.putText(vis_img, label, (x1, y1 - 2), cv2.FONT_HERSHEY_SIMPLEX,
                                        0.6, [255, 255, 255], 1, cv2.LINE_AA)
+                            
+                            # Add detection to the results
+                            detections['env'].append({
+                                'class': cls_name,
+                                'confidence': confidence,
+                                'box': [int(x1), int(y1), int(x2), int(y2)]
+                            })
                 except Exception as e:
                     print(f"Error in environmental model inference: {e}")
             
@@ -655,7 +184,7 @@ class DualModelDetection:
                             x1, y1, x2, y2 = box.xyxy[0]
                             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
                             
-                            confidence = math.ceil((box.conf[0]*100))/100
+                            confidence = float(box.conf[0])
                             cls_id = int(box.cls[0])
                             
                             if cls_id < len(self.coco_classes):
@@ -663,7 +192,7 @@ class DualModelDetection:
                             else:
                                 cls_name = f"COCO-{cls_id}"
                             
-                            color = (0, 255, 0)
+                            color = (0, 255, 0)  # Green for COCO objects
                             cv2.rectangle(vis_img, (x1, y1), (x2, y2), color, 2)
                             
                             label = f"{cls_name} {confidence:.2f}"
@@ -672,16 +201,124 @@ class DualModelDetection:
                             cv2.rectangle(vis_img, (x1, y1), c2, color, -1, cv2.LINE_AA)
                             cv2.putText(vis_img, label, (x1, y1 - 2), cv2.FONT_HERSHEY_SIMPLEX,
                                        0.6, [255, 255, 255], 1, cv2.LINE_AA)
+                            
+                            # Add detection to the results
+                            detections['coco'].append({
+                                'class': cls_name,
+                                'confidence': confidence,
+                                'box': [int(x1), int(y1), int(x2), int(y2)]
+                            })
                 except Exception as e:
                     print(f"Error in COCO model inference: {e}")
             
+            # Encode the image with detections drawn on it
             _, buffer = cv2.imencode('.jpg', vis_img)
             img_base64 = base64.b64encode(buffer).decode('utf-8')
-            return f"data:image/jpeg;base64,{img_base64}"
+            
+            # Return both the image and structured detection data
+            return {
+                'image': f"data:image/jpeg;base64,{img_base64}",
+                'detections': detections
+            }
             
         except Exception as e:
             print(f"Error in detection: {e}")
             return None
+
+@modal.method()
+async def analyze_with_claude(self, image_base64, classification, title):
+    """Use Claude to analyze the image and provide enhanced information"""
+    
+    # Check if ANTHROPIC_API_KEY is available
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("ANTHROPIC_API_KEY not available, skipping Claude analysis")
+        return None
+    
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        
+        # Format the prompt with actual values
+        prompt_content = f"""You will be given a photo and a classification (which may be null) of the photo, as well as the title of the photo. Your task is to analyze the photo and provide information about it in a specific JSON format. Follow these steps:
+
+1. Examine the provided photo:
+<photo>
+data:image/jpeg;base64,{image_base64}
+</photo>
+
+2. Consider the given classification and title (if available):
+<classification>
+{classification}
+</classification>
+
+Title:
+<title>
+{title}
+</title>
+
+3. Analyze the photo and provide the following information in JSON format:
+
+a. General information: Describe what you can tell about the photo, including key elements, setting, and any notable features.
+
+b. Environmental task: Provide a simple description of a potential environmental fix-up task related to the image. Focus on issues such as potholes, littering, flooding, broken street lights, or similar urban/environmental problems.
+
+c. Severity: Rate the urgency of the issue on a scale from 1 to 5, where 1 is least urgent and 5 is most urgent. Consider factors such as safety hazards, environmental impact, and inconvenience to the public.
+
+d. Tags: List 3-5 relevant tags that categorize the issue or elements in the photo.
+
+Format your response in the following JSON structure:
+
+<answer>
+{{
+ "general_information": "Detailed description of the photo",
+ "environmental_task": "Simple description of the potential task",
+ "severity": X,
+ "tags": ["tag1", "tag2", "tag3"]
+}}
+</answer>
+
+Ensure that your analysis is based solely on the information provided in the photo and classification. If the classification is null or doesn't match what you see in the photo, rely on your own analysis of the image.
+
+Remember to be objective and focus on observable details. If you cannot determine certain aspects from the photo, it's acceptable to state that in your response."""
+
+        # Call Claude
+        message = await client.messages.create(
+            model="claude-3-7-sonnet-20250219",
+            max_tokens=4000,
+            temperature=0.7,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt_content
+                }
+            ]
+        )
+        
+        # Extract JSON from Claude's response
+        response_text = message.content[0].text
+        
+        # Extract JSON between <answer> tags
+        json_str = response_text.split('<answer>')[1].split('</answer>')[0].strip()
+        result = json.loads(json_str)
+        return result
+    
+    except Exception as e:
+        print(f"Error using Claude for analysis: {e}")
+        return None
+
+def map_severity_to_string(self, severity_value):
+    """Map numerical severity (1-5) to string values (Low, Medium, High)"""
+    if isinstance(severity_value, str):
+        return severity_value
+        
+    severity_map = {
+        1: "Low",
+        2: "Low",
+        3: "Medium",
+        4: "High",
+        5: "High"
+    }
+    return severity_map.get(severity_value, "Medium")
 
 @app.function(
     image=image.pip_install(["fastapi", "python-multipart", "uvicorn"]),
@@ -689,36 +326,52 @@ class DualModelDetection:
 @modal.asgi_app(label="yolo-dual-model-detection")
 def fastapi_app():
     from fastapi import FastAPI, Request, Response, Query
-    from fastapi.staticfiles import StaticFiles
-    from fastapi.responses import HTMLResponse, FileResponse
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import JSONResponse
+    import json
     import os
     
     env_model_path = os.getenv("ENV_MODEL_PATH", None)
     coco_model_path = os.getenv("COCO_MODEL_PATH", "yolov8n.pt")
     
-    web_app = FastAPI(title="YOLO Dual Model Detection")
+    web_app = FastAPI(title="YOLO Dual Model Detection API")
     
-    if STATIC_DIR.exists():
-        web_app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-    
-    @web_app.get("/", response_class=HTMLResponse)
-    async def read_root():
-        if (STATIC_DIR / "index.html").exists():
-            return FileResponse(str(STATIC_DIR / "index.html"))
-        else:
-            return HTMLResponse(html_content)
+    # Add CORS middleware to allow requests from your frontend
+    web_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Adjust this in production to be more restrictive
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     
     detector = DualModelDetection(env_model_path, coco_model_path)
     
-    @web_app.post("/predict")
-    async def predict(
+    @web_app.get("/")
+    async def read_root():
+        return {"message": "YOLO Dual Model Detection API is running"}
+    
+    @web_app.post("/detect")
+    async def detect(
         request: Request,
         conf_env: float = Query(0.25, description="Confidence threshold for environmental model"),
         conf_coco: float = Query(0.25, description="Confidence threshold for COCO model")
     ):
         try:
             body = await request.body()
-            img_data_base64 = body.split(b",")[1]
+            # Handle if data is sent as JSON with base64 string
+            if body.startswith(b'{'):
+                try:
+                    json_data = json.loads(body)
+                    img_data_base64 = json_data.get('image', '').split(',')[1]
+                except:
+                    return JSONResponse(content={"error": "Invalid JSON format"}, status_code=400)
+            else:
+                # Handle if data is sent directly as base64 string
+                try:
+                    img_data_base64 = body.split(b',')[1]
+                except:
+                    img_data_base64 = body
             
             result = detector.detect.remote(
                 img_data_base64, 
@@ -726,10 +379,135 @@ def fastapi_app():
                 conf_coco=conf_coco
             )
             
-            return Response(content=result)
+            if result:
+                return JSONResponse(content=result)
+            else:
+                return JSONResponse(content={"error": "Detection failed"}, status_code=500)
         except Exception as e:
-            print(f"Error in predict endpoint: {e}")
-            return Response(content="Error processing image", status_code=500)
+            print(f"Error in detect endpoint: {e}")
+            return JSONResponse(content={"error": f"Error processing image: {str(e)}"}, status_code=500)
+    
+    @web_app.post("/analyze")
+    async def analyze(
+        request: Request,
+        conf_env: float = Query(0.3, description="Confidence threshold for environmental model"),
+        conf_coco: float = Query(0.3, description="Confidence threshold for COCO model")
+    ):
+        """Endpoint for final image analysis with higher confidence thresholds and additional metadata"""
+        try:
+            body = await request.body()
+            
+            # Handle if data is sent as JSON with base64 string
+            if body.startswith(b'{'):
+                try:
+                    json_data = json.loads(body)
+                    img_data_base64 = json_data.get('image', '').split(',')[1]
+                except:
+                    return JSONResponse(content={"error": "Invalid JSON format"}, status_code=400)
+            else:
+                # Handle if data is sent directly as base64 string
+                try:
+                    img_data_base64 = body.split(b',')[1]
+                except:
+                    img_data_base64 = body
+            
+            # Call the same detection method but with higher confidence thresholds
+            result = detector.detect.remote(
+                img_data_base64, 
+                conf_env=conf_env, 
+                conf_coco=conf_coco
+            )
+            
+            if not result:
+                return JSONResponse(content={"error": "Detection failed"}, status_code=500)
+                
+            # Process the results to get more meaningful API response for the React app
+            env_detections = result['detections']['env']
+            coco_detections = result['detections']['coco']
+            
+            # Generate the API response with titles, descriptions, etc.
+            title = "No issues detected"
+            category = "General"
+            severity = "Low"
+            tags = []
+            
+            # Customize based on environmental detections
+            if env_detections:
+                # Get most confident environmental detection
+                best_env = max(env_detections, key=lambda x: x['confidence'])
+                title = f"{best_env['class']} detected"
+                category = "Environmental Issue"
+                
+                # Set severity based on confidence and type
+                if best_env['confidence'] > 0.7:
+                    severity = "High"
+                elif best_env['confidence'] > 0.5:
+                    severity = "Medium"
+                else:
+                    severity = "Low"
+                
+                # Add all environmental classes to tags
+                tags.extend([d['class'] for d in env_detections])
+            
+            # Add relevant COCO objects to tags
+            if coco_detections:
+                top_coco = [d['class'] for d in sorted(coco_detections, key=lambda x: x['confidence'], reverse=True)[:3]]
+                tags.extend(top_coco)
+            
+            # Generate a description based on detections
+            description = "Analysis complete."
+            if env_detections:
+                env_classes = [d['class'] for d in env_detections]
+                description = f"Detected environmental issues: {', '.join(env_classes)}. "
+                
+                if "Pothole" in env_classes:
+                    description += "Potholes may pose a hazard to vehicles and pedestrians. "
+                if "Litter" in env_classes:
+                    description += "Litter should be cleaned up promptly. "
+                if "Flood" in env_classes:
+                    description += "Flooding detected, which may require immediate attention. "
+            
+            if coco_detections:
+                relevant_objects = [d['class'] for d in coco_detections if d['confidence'] > 0.4]
+                if relevant_objects:
+                    description += f"Also detected: {', '.join(relevant_objects)}."
+            
+            # Call Claude for enhanced analysis if ANTHROPIC_API_KEY is available
+            enhanced_analysis = None
+            try:
+                enhanced_analysis = await self.analyze_with_claude(
+                    image_base64=img_data_base64,
+                    classification=json.dumps(result['detections']), 
+                    title=title
+                )
+            except Exception as e:
+                print(f"Claude analysis failed, using basic analysis: {e}")
+                
+            # Create the final API response with Claude analysis if available
+            api_response = {
+                "image": result['image'],
+                "detections": result['detections'],
+                "title": title,
+                "description": description,
+                "category": category,
+                "tags": ",".join(tags),
+                "severity": severity
+            }
+            
+            # Update with Claude analysis if available
+            if enhanced_analysis:
+                api_response.update({
+                    "description": enhanced_analysis.get("general_information", description),
+                    "environmental_task": enhanced_analysis.get("environmental_task", ""),
+                    "severity": self.map_severity_to_string(enhanced_analysis.get("severity", 3)),
+                    "tags": ",".join(enhanced_analysis.get("tags", tags))
+                })
+            
+            return JSONResponse(content=api_response)
+            
+        except Exception as e:
+            print(f"Error in analyze endpoint: {e}")
+            return JSONResponse(content={"error": f"Error processing image: {str(e)}"}, status_code=500)
     
     return web_app
 
@@ -741,4 +519,4 @@ def main(env_model_path: str = None, coco_model_path: str = "yolov8n.pt"):
     print(f"Deploying app with models:")
     print(f"  - Environmental model: {env_model_path}")
     print(f"  - COCO model: {coco_model_path}")
-    print("Once deployed, access the web app at the URL provided by Modal")
+    print("Once deployed, access the API at the URL provided by Modal")
