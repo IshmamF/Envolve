@@ -33,7 +33,10 @@ const PostCard = ({ post, className, showDescription = true, compact = false }: 
   };
 
   const getSeverityIcon = () => {
-    switch(post.severity) {
+    // Convert to lowercase and handle null/undefined
+    const severity = post.severity ? post.severity.toLowerCase() : 'unknown';
+    
+    switch(severity) {
       case 'low':
         return <AlertCircle size={16} className="text-green-500" />;
       case 'medium':
@@ -43,7 +46,8 @@ const PostCard = ({ post, className, showDescription = true, compact = false }: 
       case 'critical':
         return <AlertOctagon size={16} className="text-red-500" />;
       default:
-        return null;
+        console.warn(`Unknown severity value: ${post.severity} for post with title: ${post.title}`);
+        return <AlertCircle size={16} className="text-gray-500" />;  // Default icon for unknown severity
     }
   };
 
