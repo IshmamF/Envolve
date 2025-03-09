@@ -87,14 +87,6 @@ const featuredPosts = [
   },
 ]
 
-// Hardcoded statistics
-const stats = [
-  { label: "Issues Reported", value: 243 },
-  { label: "Issues Resolved", value: 178 },
-  { label: "Active Users", value: 1247 },
-  { label: "Communities", value: 52 },
-]
-
 export default function HomePage() {
   const [scrollPosition, setScrollPosition] = useState(0)
 
@@ -228,21 +220,7 @@ export default function HomePage() {
           </Card>
         </div>
       </section>
-
-      {/* Stats Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center animate-fade-in [animation-delay:200ms]">
-                <p className="text-5xl font-bold text-emerald-600 mb-3">{stat.value}</p>
-                <p className="text-sm font-medium text-emerald-800/70">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
+      
       {/* AI Features Section (NEW) */}
       <section className="py-24 bg-gradient-to-r from-emerald-50 to-teal-50">
         <div className="container mx-auto px-6">
