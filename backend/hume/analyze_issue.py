@@ -1,14 +1,18 @@
 import modal
 import os
 import json
-import anthropic
 from typing import Optional, Dict, Any
 
-# Create Modal image with Anthropic SDK
-image = modal.Image.debian_slim().pip_install(["anthropic>=0.18.0", "fastapi", "python-multipart"])
+# Create Modal image with all required packages
+image = modal.Image.debian_slim().pip_install([
+    "anthropic",  # Pin to a specific version
+    "fastapi", 
+    "python-multipart",
+    "twilio"  # Add Twilio for Hume AI integration
+])
 
 # Create Modal app
-app = modal.App("nyc-issue-analyzer")
+app = modal.App("nyc-issue-analyzer-with-hume")
 
 class IssueAnalyzer:
     def __init__(self):
@@ -16,6 +20,15 @@ class IssueAnalyzer:
         self.api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
             print("Warning: ANTHROPIC_API_KEY not found in environment variables")
+            
+        # Check for Twilio credentials
+        self.twilio_account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+        self.twilio_auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+        self.twilio_phone_number = os.environ.get("TWILIO_PHONE_NUMBER")
+        
+        # Check for Hume AI credentials
+        self.hume_config_id = os.environ.get("HUME_CONFIG_ID")
+        self.hume_api_key = os.environ.get("HUME_API_KEY")
             
     @modal.method()
     async def analyze_issue(
@@ -31,22 +44,29 @@ class IssueAnalyzer:
         Analyze an issue using Claude to determine which NYC city organization should handle it
         and generate a call script for Hume AI.
         """
-        if not self.api_key:
-            return {
-                "error": "ANTHROPIC_API_KEY not configured",
-                "recommendation": {
-                    "selectedOrganization": "NYC 311 Service",
-                    "organizationId": 1,
-                    "justification": "Default recommendation due to missing API key",
-                    "callScript": f"Hello, I'd like to report an issue: {title}. The issue is located at: {location}."
-                }
-            }
+        try:
+            # Import here inside the method to avoid any Modal environment issues
+            import anthropic
             
-        # Initialize Anthropic client
-        client = anthropic.Anthropic(api_key=self.api_key)
-        
-        # Prepare the prompt with real values
-        prompt = f"""You are an AI assistant for New York City's issue reporting system. Your task is to analyze reported issues, determine which city organization should handle them (if any), and create a brief call script for use with Hume AI.
+            if not self.api_key:
+                return {
+                    "error": "ANTHROPIC_API_KEY not configured",
+                    "recommendation": {
+                        "selectedOrganization": "NYC 311 Service",
+                        "organizationId": 1,
+                        "justification": "Default recommendation due to missing API key",
+                        "callScript": f"Hello, I'd like to report an issue: {title}. The issue is located at: {location}."
+                    }
+                }
+                
+            # Initialize Anthropic client 
+            client = anthropic.Anthropic(
+            api_key=self.api_key,
+            # Remove any auto-configured proxies
+            )
+            
+            # Prepare the prompt with real values
+            prompt = f"""You are an AI assistant for New York City's issue reporting system. Your task is to analyze reported issues, determine which city organization should handle them (if any), and create a brief call script for use with Hume AI.
 
 First, review the list of city organizations and their responsibilities:
 
@@ -179,13 +199,12 @@ After your analysis, present your recommendation in a JSON format with the follo
 }}
 
 Ensure that your JSON response clearly distinguishes between cases where an organization is recommended and cases where no reporting is deemed necessary. The call script should be a concise set of talking points or questions based on the issue evaluation and recommendation."""
-        
-        try:
-            # Call Claude API with synchronous handling
+            
+            # Call Claude API in the simplest way
             try:
                 message = client.messages.create(
-                    model="claude-3-5-haiku-20241022",
-                    max_tokens=8192,
+                    model="claude-3-haiku-20240307",  # Use available model
+                    max_tokens=4095,
                     temperature=0.7,
                     messages=[
                         {
@@ -195,22 +214,19 @@ Ensure that your JSON response clearly distinguishes between cases where an orga
                     ]
                 )
                 
-                # Extract response text (new style API)
+                # Extract response text
                 response_text = message.content[0].text
             except Exception as e:
-                print(f"Error with new API format: {e}")
-                # Try legacy API format as fallback
-                try:
-                    message = client.completions.create(
-                        model="claude-3-5-haiku-20241022",
-                        max_tokens=8192,
-                        temperature=0.7,
-                        prompt=f"\n\nHuman: {prompt}\n\nAssistant:",
-                    )
-                    response_text = message.completion
-                except Exception as e2:
-                    print(f"Error with legacy API format: {e2}")
-                    raise Exception(f"Failed to call Claude API: {e} | {e2}")
+                print(f"Error calling Claude API: {e}")
+                return {
+                    "error": f"Claude API error: {str(e)}",
+                    "recommendation": {
+                        "selectedOrganization": "NYC 311 Service",
+                        "organizationId": 1,
+                        "justification": "Default recommendation due to API error",
+                        "callScript": f"Hello, I'd like to report an issue: {title}. The issue is located at: {location}."
+                    }
+                }
             
             # Parse the analysis and recommendation sections
             full_analysis = ""
@@ -247,30 +263,155 @@ Ensure that your JSON response clearly distinguishes between cases where an orga
             }
             
         except Exception as e:
-            print(f"Error calling Claude API: {e}")
+            print(f"Unexpected error: {e}")
             return {
                 "error": str(e),
                 "recommendation": {
                     "selectedOrganization": "NYC 311 Service",
                     "organizationId": 1,
-                    "justification": "Default recommendation due to API error",
+                    "justification": "Default recommendation due to unexpected error",
                     "callScript": f"Hello, I'd like to report an issue: {title}. The issue is located at: {location}."
                 }
             }
+    
+    @modal.method()
+    async def make_hume_call(self, to_number: str, call_script: str) -> Dict[str, Any]:
+        """
+        Make a call using Twilio and Hume AI with the generated call script
+        """
+        try:
+            import twilio
+            print(f"Twilio version: {twilio.__version__}")
+            from twilio.rest import Client
+            import urllib.parse
+            # Debug environment variables - will show in Modal logs
+            print("DEBUG: Environment variables:")
+            print(f"TWILIO_ACCOUNT_SID exists: {bool(os.environ.get('TWILIO_ACCOUNT_SID'))}")
+            print(f"TWILIO_AUTH_TOKEN exists: {bool(os.environ.get('TWILIO_AUTH_TOKEN'))}")
+            print(f"TWILIO_PHONE_NUMBER exists: {bool(os.environ.get('TWILIO_PHONE_NUMBER'))}")
+            
+            # Debug instance variables
+            print("DEBUG: Instance variables:")
+            print(f"self.twilio_account_sid exists: {bool(self.twilio_account_sid)}")
+            print(f"self.twilio_auth_token exists: {bool(self.twilio_auth_token)}")
+            print(f"self.twilio_phone_number exists: {bool(self.twilio_phone_number)}")
+            
+            # Return more detailed error
+            if not all([self.twilio_account_sid, self.twilio_auth_token, self.twilio_phone_number]):
+                missing = []
+                if not self.twilio_account_sid: missing.append("TWILIO_ACCOUNT_SID")
+                if not self.twilio_auth_token: missing.append("TWILIO_AUTH_TOKEN")
+                if not self.twilio_phone_number: missing.append("TWILIO_PHONE_NUMBER")
+                return {
+                    "error": f"Twilio credentials not configured. Missing: {', '.join(missing)}",
+                    "status": "failed"
+                }
+                
+            if not all([self.hume_config_id, self.hume_api_key]):
+                return {
+                    "error": "Hume AI credentials not configured",
+                    "status": "failed"
+                }
+                
+            # Initialize Twilio client
+            client = Client(self.twilio_account_sid, self.twilio_auth_token)
+        
+            # Format the Hume AI webhook URL - BASE ONLY
+            base_webhook_url = f"https://api.hume.ai/v0/evi/twilio"
+            
+            # Properly encode the parameters
+            params = {
+                "config_id": self.hume_config_id,
+                "api_key": self.hume_api_key,
+                "script": call_script  # This will get properly encoded
+            }
+            
+            # Build the full URL with proper encoding
+            query_string = urllib.parse.urlencode(params)
+            webhook_url = f"{base_webhook_url}?{query_string}"
+            
+            print(f"Using webhook URL: {webhook_url}")
+            
+            # Make the call
+            call = client.calls.create(
+                to=to_number,
+                from_=self.twilio_phone_number,
+                url=webhook_url
+            )
+            
+            return {
+                "status": call.status,
+                "call_sid": call.sid,
+                "call_script": call_script
+            }
+            
+        except Exception as e:
+            print(f"Error making Hume AI call: {e}")
+            return {
+                "error": str(e),
+                "status": "failed"
+            }
+
+    @modal.method()
+    async def analyze_and_call(
+        self,
+        title: str,
+        description: str,
+        severity: str,
+        tags: str,
+        location: str,
+        to_number: str,
+        photo_info: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Combined method to analyze an issue and immediately make a call with the results
+        """
+        # First analyze the issue
+        analysis_result = await self.analyze_issue(
+            title=title,
+            description=description,
+            severity=severity,
+            tags=tags,
+            location=location,
+            photo_info=photo_info
+        )
+        
+        # Extract the call script from the recommendation
+        call_script = analysis_result.get("recommendation", {}).get(
+            "callScript", 
+            f"Hello, I'd like to report an issue: {title}. The issue is located at: {location}."
+        )
+        
+        # Make the call using Hume AI
+        call_result = await self.make_hume_call(
+            to_number=to_number,
+            call_script=call_script
+        )
+        
+        # Return combined results
+        return {
+            "analysis": analysis_result,
+            "call": call_result
+        }
 
 # Create FastAPI endpoint
 @app.function(
     image=image,
-    secrets=[modal.Secret.from_name("anthropic-secret")]
+    secrets=[
+        modal.Secret.from_name("anthropic-secret"),
+        modal.Secret.from_name("twilio-secret"),
+        modal.Secret.from_name("hume-secret")
+    ],
+    timeout=120  # Increase timeout to 2 minutes to allow for API calls
 )
 @modal.asgi_app()
 def api():
-    from fastapi import FastAPI, HTTPException, Body
+    from fastapi import FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel
     from typing import Optional
     
-    app = FastAPI(title="NYC Issue Analyzer API")
+    app = FastAPI(title="NYC Issue Analyzer with Hume AI Integration")
     
     # Add CORS middleware
     app.add_middleware(
@@ -281,13 +422,26 @@ def api():
         allow_headers=["*"],
     )
     
-    # Define request model
+    # Define request models
     class IssueRequest(BaseModel):
         title: str
         description: str
         severity: str
         tags: str
         location: str
+        photo_info: Optional[str] = None
+    
+    class CallRequest(BaseModel):
+        to_number: str
+        call_script: str
+    
+    class AnalyzeAndCallRequest(BaseModel):
+        title: str
+        description: str
+        severity: str
+        tags: str
+        location: str
+        to_number: str
         photo_info: Optional[str] = None
     
     # Endpoint for analyzing issues
@@ -309,8 +463,51 @@ def api():
             
         return result
     
+    # Endpoint for making Hume AI calls
+    @app.post("/call")
+    async def make_call(call_request: CallRequest):
+        analyzer = IssueAnalyzer()
+        
+        result = await analyzer.make_hume_call(
+            to_number=call_request.to_number,
+            call_script=call_request.call_script
+        )
+        
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+            
+        return result
+    
+    # Endpoint that combines analysis and calling
+    @app.post("/analyze-and-call")
+    async def analyze_and_call(request: AnalyzeAndCallRequest):
+        analyzer = IssueAnalyzer()
+        
+        result = await analyzer.analyze_and_call(
+            title=request.title,
+            description=request.description,
+            severity=request.severity,
+            tags=request.tags,
+            location=request.location,
+            to_number=request.to_number,
+            photo_info=request.photo_info
+        )
+        
+        if "error" in result.get("analysis", {}) or "error" in result.get("call", {}):
+            # Return the result anyway, but with a 500 status code
+            return HTTPException(status_code=500, detail=result)
+            
+        return result
+    
     @app.get("/")
     async def root():
-        return {"message": "NYC Issue Analyzer API is running. Post to /analyze to analyze an issue."}
+        return {
+            "message": "NYC Issue Analyzer with Hume AI Integration is running.",
+            "endpoints": [
+                "/analyze - Analyze an issue and get a recommendation",
+                "/call - Make a call with Hume AI",
+                "/analyze-and-call - Analyze an issue and immediately make a call"
+            ]
+        }
         
     return app
