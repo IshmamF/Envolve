@@ -143,11 +143,6 @@ const MapBox = ({data}: Props) => {
         </Map>
       </div>
 
-      {/* Add zoom controls or info about 3D buildings */}
-      <div className="absolute bottom-2 left-2 bg-white/80 dark:bg-black/60 backdrop-blur-sm text-xs p-1 rounded">
-        Zoom in to see 3D buildings (zoom level: {Math.round(viewState.zoom)})
-      </div>
-
       {/* Toggle 3D view button */}
       <button 
         onClick={toggle3DView}
