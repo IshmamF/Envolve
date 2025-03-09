@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { VoteType } from '@/types/Vote';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { upVoteUpdate, downVoteUpdate } from '@/app/private/actions';
+import { subscribeToPostStatusChanges } from '@/lib/supabase/post';
 
 // helper function to format timestamptz to a relative time string
 function formatRelativeTime(timestamp: string): string {
@@ -59,6 +60,7 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
       mutationFn: upVoteUpdate,
       onSuccess: () => {
         queryClient.invalidateQueries({queryKey: ['posts']});
+        checkPostStatus();
       }
     })
     const downvoteMutation = useMutation({
@@ -112,6 +114,24 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
     }, []);
     
     
+    // Add right after the resize effect
+    useEffect(() => {
+      if (post.id && !isApproved) {
+        console.log(`Setting up status subscription for post ${post.id}`);
+        
+        const unsubscribe = subscribeToPostStatusChanges((updatedPost) => {
+          // Only update if this is the post that was changed
+          if (updatedPost.id === post.id) {
+            console.log(`Post ${post.id} status changed to approved`);
+            setIsApproved(true);
+          }
+        });
+        
+        return () => unsubscribe();
+      }
+    }, [post.id, isApproved]);
+    
+    
     // Handle vote clicks
     const handleUpvote = async () => {
       if (activeVote === 'upvote') {
@@ -146,6 +166,16 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
         setDownvotes(initialDownvotes + 1);
         downvoteMutation.mutate({vote: initialUpvotes + 1, post_id: post.id})
         setActiveVote('downvote');
+      }
+    };
+    
+    // Add after upvote mutation
+    const checkPostStatus = async () => {
+      try {
+        const status = await fetch(`/api/check-post-status?id=${post.id}`).then(r => r.json());
+        if (status) setIsApproved(true);
+      } catch (err) {
+        console.error("Error checking status:", err);
       }
     };
     
