@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, Home, Settings, HelpCircle, Leaf } from "lucide-react"
+import { Map, Home, Settings, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AuthButton } from "@/components/auth-button"
+import { Logo } from "@/components/logo"
+import { motion } from "framer-motion"
 
 type NavbarProps = {
   activePage: string
@@ -45,17 +47,17 @@ export default function Navbar({ activePage, setActivePage }: NavbarProps) {
 
   return (
     <>
-      <header
+      <motion.header
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeInOut" }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled ? "bg-white/80 dark:bg-black/80 backdrop-blur-md shadow-sm" : "bg-transparent"
         }`}
       >
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Logo/Title */}
-          <Link href="/" className="flex items-center gap-2">
-            <Leaf className="h-6 w-6 text-green-600" />
-            <span className="text-xl font-bold">Envolve</span>
-          </Link>
+          {/* Logo */}
+          <Logo />
 
           {/* Navigation Links - Desktop */}
           <div className="hidden sm:flex items-center gap-2">
@@ -99,7 +101,7 @@ export default function Navbar({ activePage, setActivePage }: NavbarProps) {
             <AuthButton />
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Spacer element to prevent content from being hidden under the fixed navbar */}
       <div className="h-16"></div>
