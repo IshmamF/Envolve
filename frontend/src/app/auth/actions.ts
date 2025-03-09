@@ -36,8 +36,8 @@ export async function signup(formData: FormData) {
   }
 
   const profData = {
-    fN: formData.get('firstname') as string,
-    lN: formData.get('lastname') as string,
+    first_name: formData.get('firstname') as string,
+    last_name: formData.get('lastname') as string,
   }
 
   // sign up user
@@ -49,25 +49,58 @@ export async function signup(formData: FormData) {
 
   const userID = authData.user?.id
 
-  {/* WHEN WE HAVE PROFILE TABLE, DO BELOW INSERT*/}
+  // Create user profile in user_profiles table
+  if (userID) {
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .insert([
+        {
+          user: userID,
+          first_name: profData.first_name,
+          last_name: profData.last_name,
+        }
+      ])
 
-  /*
-
-  const { error: profileError } = await supabase
-  .from('profile')
-  .insert([
-    {
-      id: userID,
-      first_name: profData.fN,
-      last_name: profData.lN,
+    if (profileError) {
+      console.error('Profile Creation error:', profileError)
     }
-  ])
-
-  if (profileError) {
-    console.error('Profile Creation error:', profileError)
   }
-    */
 
   revalidatePath('/', 'layout')
   redirect('/')
+}
+
+// Function to update user profile
+export async function updateProfile(userId: string, profileData: { first_name?: string; last_name?: string }) {
+  const supabase = await createClient()
+  
+  const { error } = await supabase
+    .from('user_profiles')
+    .update(profileData)
+    .eq('user', userId)
+  
+  if (error) {
+    console.error('Profile Update error:', error)
+    return { success: false, error }
+  }
+  
+  return { success: true }
+}
+
+// Function to get user profile
+export async function getProfile(userId: string) {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('user', userId)
+    .single()
+  
+  if (error) {
+    console.error('Get Profile error:', error)
+    return { profile: null, error }
+  }
+  
+  return { profile: data, error: null }
 }
