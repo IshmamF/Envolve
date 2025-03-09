@@ -76,10 +76,20 @@ export default function PostCard({ post }: { post: any }): JSX.Element {
       low: { color: 'success', label: 'Low Severity', bgColor: 'bg-green-100 dark:bg-green-900', textColor: 'text-green-800 dark:text-green-200' }
     };
   
-    // Default to 'medium' if severity is not set
-    const severity = post.severity && severityStyles[post.severity as keyof typeof severityStyles] 
-      ? severityStyles[post.severity as keyof typeof severityStyles]
-      : severityStyles.medium;
+    // Check if severity is valid and use it, otherwise log the issue and use low severity as default
+    const severity = post.severity && 
+      typeof post.severity === 'string' && 
+      Object.keys(severityStyles).includes(post.severity.toLowerCase()) 
+        ? severityStyles[post.severity.toLowerCase() as keyof typeof severityStyles]
+        : (() => {
+            // Log the invalid severity for debugging
+            if (post.severity) {
+              console.warn(`Invalid severity value: ${post.severity} for post ID: ${post.id}`);
+            } else {
+              console.warn(`Missing severity for post ID: ${post.id}`);
+            }
+            return severityStyles.low; // Default to low instead of medium
+          })();
     
     // Format the created_at timestamp
     const relativeTime = formatRelativeTime(post.created_at);
