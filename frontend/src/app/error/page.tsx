@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 
 export default function ErrorPage() {
   return (
@@ -39,13 +38,7 @@ export default function ErrorPage() {
             Sign in again
           </Link>
           
-          <Link
-            href="/"
-            className="flex items-center justify-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Home Page</span>
-          </Link>
+
         </div>
       </div>
     </div>

@@ -1,0 +1,518 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YOLO Dual Model Detection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .video-container { 
+            position: relative;
+            margin: 0 auto; 
+            width: 640px; 
+            height: 480px; 
+            border: 1px solid #ccc;
+            background-color: #000;
+        }
+        @media (max-width: 680px) {
+            .video-container {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 4/3;
+            }
+        }
+        #webcam, #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #overlay {
+            z-index: 10;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .camera-controls {
+            margin: 10px 0;
+        }
+        .slider-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            padding: 0 10px;
+            min-width: 150px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #toggle-camera {
+            background-color: #4a4a4a;
+        }
+        #toggle-camera:hover {
+            background-color: #5a5a5a;
+        }
+        .status {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+        #fps-counter, #latency-counter {
+            position: absolute;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            z-index: 15;
+        }
+        #fps-counter {
+            top: 10px;
+            left: 10px;
+        }
+        #latency-counter {
+            top: 10px;
+            right: 10px;
+        }
+        .no-webcam {
+            color: red;
+            padding: 20px;
+            display: none;
+        }
+        .model-info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e9f7ef;
+            border-radius: 5px;
+        }
+        .class-list {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .class-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+        .coco-class {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+        }
+        .custom-class {
+            background-color: #ffcdd2;
+            color: #c62828;
+        }
+        input[type=range] {
+            width: 100%;
+        }
+        .performance-settings {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 600px;
+        }
+        /* Media queries to only show toggle on mobile */
+        @media only screen and (max-width: 768px) {
+            .camera-controls {
+                display: block;
+            }
+        }
+        
+        @media only screen and (min-width: 769px) {
+            .camera-controls {
+                display: none; /* Hide on desktop */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YOLO Dual Model Detection</h1>
+        
+        <div class="model-info">
+            <h3>Dual Model Detection System</h3>
+            <p>This system uses two YOLO models simultaneously:</p>
+            <ul style="text-align: left; display: inline-block;">
+                <li><strong style="color: #2e7d32;">COCO Model (Green):</strong> Detects common objects like people, cars, phones, etc.</li>
+                <li><strong style="color: #c62828;">Environmental Model (Red):</strong> Detects environmental issues like potholes, litter, etc.</li>
+            </ul>
+            
+            <div class="class-list">
+                <div class="class-badge custom-class">Pothole</div>
+                <div class="class-badge custom-class">Litter</div>
+                <div class="class-badge custom-class">Flood</div>
+                <div class="class-badge custom-class">Light</div>
+                <div class="class-badge coco-class">Person</div>
+                <div class="class-badge coco-class">Car</div>
+                <div class="class-badge coco-class">Phone</div>
+                <div class="class-badge coco-class">+77 more</div>
+            </div>
+        </div>
+        
+        <div class="video-container">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="overlay"></canvas>
+            <div id="fps-counter">FPS: 0</div>
+            <div id="latency-counter">Latency: 0ms</div>
+        </div>
+        
+        <div class="no-webcam" id="no-webcam">
+            <h2>Webcam not available</h2>
+            <p>Please ensure your browser has permission to access your webcam.</p>
+        </div>
+        
+        <div class="controls">
+            <div class="camera-controls">
+                <button id="toggle-camera">Switch to Front Camera</button>
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-group">
+                    <label for="env-confidence">Environmental Model: <span id="env-confidence-value">0.25</span></label>
+                    <input type="range" id="env-confidence" min="0.1" max="0.9" step="0.05" value="0.25">
+                </div>
+                <div class="slider-group">
+                    <label for="coco-confidence">COCO Model: <span id="coco-confidence-value">0.25</span></label>
+                    <input type="range" id="coco-confidence" min="0.1" max="0.9" step="0.05" value="0.25">
+                </div>
+            </div>
+            
+            <div class="performance-settings">
+                <h4>Performance Settings</h4>
+                <div class="slider-container">
+                    <div class="slider-group">
+                        <label for="input-size">Image Size: <span id="input-size-value">480</span>px</label>
+                        <input type="range" id="input-size" min="160" max="640" step="32" value="480">
+                    </div>
+                    <div class="slider-group">
+                        <label for="frame-interval">Frame Interval: <span id="frame-interval-value">300</span>ms</label>
+                        <input type="range" id="frame-interval" min="100" max="1000" step="50" value="300">
+                    </div>
+                </div>
+                <div>
+                    <label for="adaptive-rate">
+                        <input type="checkbox" id="adaptive-rate" checked> Adaptive Frame Rate
+                    </label>
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <button id="start-btn">Start Detection</button>
+                <button id="stop-btn" disabled>Stop Detection</button>
+            </div>
+        </div>
+        
+        <div class="status" id="status">Ready to start detection.</div>
+    </div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const overlay = document.getElementById('overlay');
+        const ctx = overlay.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const statusElement = document.getElementById('status');
+        const fpsCounter = document.getElementById('fps-counter');
+        const latencyCounter = document.getElementById('latency-counter');
+        const noWebcamMessage = document.getElementById('no-webcam');
+        
+        const envConfidenceSlider = document.getElementById('env-confidence');
+        const envConfidenceValue = document.getElementById('env-confidence-value');
+        const cocoConfidenceSlider = document.getElementById('coco-confidence');
+        const cocoConfidenceValue = document.getElementById('coco-confidence-value');
+        const inputSizeSlider = document.getElementById('input-size');
+        const inputSizeValue = document.getElementById('input-size-value');
+        const frameIntervalSlider = document.getElementById('frame-interval');
+        const frameIntervalValue = document.getElementById('frame-interval-value');
+        const adaptiveRateCheckbox = document.getElementById('adaptive-rate');
+        
+        let isCapturing = false;
+        let captureInterval;
+        let lastFrameTime = 0;
+        let frameCount = 0;
+        let fpsUpdateInterval;
+        let currentInterval = parseInt(frameIntervalSlider.value);
+        let processingFrame = false;
+        let latencyHistory = [];
+        let currentFacingMode = "environment"; // Start with back camera
+        let mediaStream = null;
+        
+        // Set canvas size to match video container
+        function updateCanvasSize() {
+            const container = document.querySelector('.video-container');
+            overlay.width = container.offsetWidth;
+            overlay.height = container.offsetHeight;
+        }
+        
+        // Call on page load and resize
+        updateCanvasSize();
+        window.addEventListener('resize', updateCanvasSize);
+        
+        // Update slider value displays
+        envConfidenceSlider.addEventListener('input', function() {
+            envConfidenceValue.textContent = this.value;
+        });
+        cocoConfidenceSlider.addEventListener('input', function() {
+            cocoConfidenceValue.textContent = this.value;
+        });
+        inputSizeSlider.addEventListener('input', function() {
+            inputSizeValue.textContent = this.value;
+        });
+        frameIntervalSlider.addEventListener('input', function() {
+            frameIntervalValue.textContent = this.value;
+            currentInterval = parseInt(this.value);
+            
+            // Update the capture interval if active
+            if (isCapturing && captureInterval) {
+                clearInterval(captureInterval);
+                captureInterval = setInterval(triggerCapture, currentInterval);
+            }
+        });
+        
+        // Toggle between front and back cameras
+        async function toggleCamera() {
+            // First stop any existing stream
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => {
+                    track.stop();
+                });
+            }
+            
+            // Toggle the facing mode
+            currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+            
+            try {
+                // Request the new camera
+                const constraints = {
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: { ideal: currentFacingMode }
+                    }
+                };
+                
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = mediaStream;
+                await video.play();
+                
+                // Update button text to show which camera is active
+                document.getElementById('toggle-camera').innerText = 
+                    currentFacingMode === "environment" ? "Switch to Front Camera" : "Switch to Back Camera";
+                
+                return true;
+            } catch (err) {
+                console.error('Error switching camera:', err);
+                return false;
+            }
+        }
+        
+        // Initialize webcam
+        async function setupWebcam() {
+            return await toggleCamera(); // This will start with the back camera by default
+        }
+        
+        // Start capturing and sending frames
+        async function startCapture() {
+            if (!video.srcObject) {
+                const success = await setupWebcam();
+                if (!success) return;
+            }
+            
+            isCapturing = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusElement.textContent = 'Detection running...';
+            
+            // Start FPS counter
+            lastFrameTime = performance.now();
+            frameCount = 0;
+            latencyHistory = [];
+            fpsUpdateInterval = setInterval(updateFPS, 1000);
+            
+            // Capture and process frames at the specified interval
+            currentInterval = parseInt(frameIntervalSlider.value);
+            captureInterval = setInterval(triggerCapture, currentInterval);
+        }
+        
+        // Trigger frame capture if not already processing a frame
+        function triggerCapture() {
+            if (!isCapturing) return;
+            
+            if (!processingFrame || !adaptiveRateCheckbox.checked) {
+                captureFrame();
+            }
+        }
+        
+        // Stop capturing
+        function stopCapture() {
+            isCapturing = false;
+            clearInterval(captureInterval);
+            clearInterval(fpsUpdateInterval);
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusElement.textContent = 'Detection stopped.';
+            
+            // Clear overlay
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+        }
+        
+        // Capture frame and send to server
+        async function captureFrame() {
+            if (!isCapturing) return;
+            
+            processingFrame = true;
+            const startTime = performance.now();
+            
+            try {
+                // Get the target size from the slider
+                const targetSize = parseInt(inputSizeSlider.value);
+                
+                // Create a temporary canvas to capture and resize the frame
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = targetSize;
+                tempCanvas.height = targetSize * (video.videoHeight / video.videoWidth);
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+                
+                // Convert to data URL and send
+                const dataURL = tempCanvas.toDataURL('image/jpeg', 0.8);
+                
+                // Get current confidence thresholds
+                const envConfidence = parseFloat(envConfidenceSlider.value);
+                const cocoConfidence = parseFloat(cocoConfidenceSlider.value);
+                
+                // Send to server for processing
+                const response = await fetch(`/predict?conf_env=${envConfidence}&conf_coco=${cocoConfidence}`, {
+                    method: 'POST',
+                    body: dataURL
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Process response - which should be an image with detections
+                const resultDataURL = await response.text();
+                
+                // Display the result
+                if (isCapturing) {  // Check again in case user stopped while waiting
+                    const img = new Image();
+                    img.onload = () => {
+                        // Clear previous overlay
+                        ctx.clearRect(0, 0, overlay.width, overlay.height);
+                        // Draw new detections
+                        ctx.drawImage(img, 0, 0, overlay.width, overlay.height);
+                        
+                        // Update frame count for FPS calculation
+                        frameCount++;
+                    };
+                    img.src = resultDataURL;
+                }
+                
+                // Calculate and track latency
+                const latency = performance.now() - startTime;
+                latencyHistory.push(latency);
+                if (latencyHistory.length > 10) latencyHistory.shift();
+                
+                // Update latency display
+                const avgLatency = latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length;
+                latencyCounter.textContent = `Latency: ${Math.round(avgLatency)}ms`;
+                
+                // Adjust interval based on latency if adaptive rate is enabled
+                if (adaptiveRateCheckbox.checked) {
+                    // Set the interval to slightly more than the average latency
+                    const newInterval = Math.max(100, Math.min(1000, Math.round(avgLatency * 1.2)));
+                    
+                    if (Math.abs(newInterval - currentInterval) > 50) {
+                        currentInterval = newInterval;
+                        clearInterval(captureInterval);
+                        captureInterval = setInterval(triggerCapture, currentInterval);
+                        
+                        // Update the slider value (but don't trigger input event)
+                        frameIntervalSlider.value = currentInterval;
+                        frameIntervalValue.textContent = currentInterval;
+                    }
+                }
+                
+            } catch (err) {
+                console.error('Error processing frame:', err);
+                statusElement.textContent = 'Error: ' + err.message;
+            } finally {
+                processingFrame = false;
+            }
+        }
+        
+        // Update FPS counter
+        function updateFPS() {
+            const now = performance.now();
+            const elapsed = now - lastFrameTime;
+            const fps = Math.round((frameCount / elapsed) * 1000);
+            fpsCounter.textContent = `FPS: ${fps}`;
+            
+            // Reset for next second
+            frameCount = 0;
+            lastFrameTime = now;
+        }
+        
+        // Setup event listeners
+        startBtn.addEventListener('click', startCapture);
+        stopBtn.addEventListener('click', stopCapture);
+        document.getElementById('toggle-camera').addEventListener('click', async () => {
+            // Stop capturing if running
+            const wasCapturing = isCapturing;
+            if (wasCapturing) {
+                stopCapture();
+            }
+            
+            // Toggle camera
+            await toggleCamera();
+            
+            // Resume capturing if it was running
+            if (wasCapturing) {
+                startCapture();
+            }
+        });
+        
+        // Initialize webcam on page load
+        setupWebcam();
+    </script>
+</body>
+</html>

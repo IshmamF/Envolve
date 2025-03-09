@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { TextHoverEffect } from "@/components/ui/text-hover-effect";
 import { login } from "../actions";
-import { ArrowLeft } from "lucide-react";
 
 export default function SignIn() {
   const [loading, setLoading] = useState(false);
@@ -29,14 +28,6 @@ export default function SignIn() {
   
   return (
     <div className="min-h-screen flex justify-center items-center relative">
-      {/* Back to Home Button */}
-      <Link
-        href="/"
-        className="absolute top-4 left-4 flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span>Back to Home Page</span>
-      </Link>
 
       <div className="max-w-md w-full mx-auto rounded-lg p-4 md:p-8 shadow-input bg-white dark:bg-black border border-gray-200 dark:border-gray-800">
         <TextHoverEffect text="Envolve" />

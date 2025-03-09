@@ -15,4 +15,33 @@ export type Post = {
   category: string[];
   tags: string[];
   severity: 'high' | 'medium' | 'low';
+  isPoll?: boolean;
 }; 
+
+export interface HardCodedPost {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  location: Location;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  userDisplayName: string;
+  userAvatar?: string;
+  tags: Tag[];
+  votes: number;
+  status: string;
+  severity: string;
+}
+
+export interface Location {
+  latitude: number;
+  longitude: number;
+  address?: string;
+}
+
+export interface Tag {
+  id: string;
+  label: string;
+}
