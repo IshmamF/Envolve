@@ -11,7 +11,7 @@ image = (
         ["libgl1-mesa-glx", "libglib2.0-0"]
     )
     .pip_install(
-        ["ultralytics==8.0.196", "roboflow~=1.1.37", "opencv-python~=4.10.0"]
+        ["ultralytics", "roboflow", "opencv-python~=4.10.0"]
     )
     .pip_install(
         "term-image==0.7.1"
@@ -210,7 +210,7 @@ TRAIN_CPU_COUNT = 4
 )
 def train(
     unified_yaml_path: str,
-    model_size="yolov8s.pt",
+    model_size="yolov8m.pt",
     quick_check=False,
 ):
     import torch
@@ -230,15 +230,18 @@ def train(
 
     volume.reload()  
 
+    import shutil
     model_path = volume_path / "runs" / "unified_model"
+    if model_path.exists():
+        shutil.rmtree(model_path)
     model_path.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading {model_size} model...")
     model = YOLO(model_size)  
     
  
-    epochs = 8 if not quick_check else 1
-    batch_size = 16
+    epochs = 15 if not quick_check else 15
+    batch_size = 32
     
     print(f"Starting transfer learning with batch size {batch_size} for {epochs} epochs...")
     
@@ -252,14 +255,14 @@ def train(
             batch=batch_size,
             imgsz=640,
             pretrained=True,  
-            freeze=10,        
-            
-            amp=True,
+            freeze=5,        
+            augment=True,  
+            cos_lr=True, 
             cache=True,
             workers=max(TRAIN_CPU_COUNT // TRAIN_GPU_COUNT, 1),
             
             optimizer="AdamW",
-            patience=5,
+            patience=0,
             save_period=1,
             
             project=f"{volume_path}/runs",
@@ -269,6 +272,8 @@ def train(
         )
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Training error: {e}")
     
     best_weights_path = volume_path / "runs" / "unified_model" / "weights" / "best.pt"
@@ -292,7 +297,7 @@ def read_image(image_path: str):
     source = cv2.imread(image_path)
     return source
 
-@app.cls(gpu="a10g") #less memory
+@app.cls(gpu="A100") #less memory
 class Inference:
     def __init__(self, weights_path):
         self.weights_path = weights_path
@@ -355,7 +360,7 @@ class Inference:
         )
 
 @app.local_entrypoint()
-def main(quick_check: bool = True, inference_only: bool = False):
+def main(quick_check: bool = False, inference_only: bool = False):
     import os
     
     pothole = DatasetConfig(
