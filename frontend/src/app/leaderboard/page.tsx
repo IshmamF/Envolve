@@ -54,8 +54,8 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <div className="container py-8 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">Environmental Heroes Leaderboard</h1>
+    <div className="container py-8 max-w-5xl px-4 md:px-2 mx-auto">
+      <h1 className="text-3xl font-bold mb-2 ">Environmental Heroes Leaderboard</h1>
       <p className="text-muted-foreground mb-8">
         Recognizing our top contributors in making the world a better place.
       </p>

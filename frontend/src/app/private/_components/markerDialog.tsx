@@ -112,7 +112,7 @@ export default function MarkerDialog({ issue, openDialog, setOpenDialog, onUpvot
           </div>
         </div>
 
-        <DialogHeader>
+        <DialogHeader className="px-4">
           <DialogTitle>{issue.title}</DialogTitle>
           <DialogDescription id="issue-description">
             Environmental issue reported at {issue.location || `coordinates: ${issue.longitude}, ${issue.latitude}`}
