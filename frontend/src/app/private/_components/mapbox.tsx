@@ -1,5 +1,5 @@
 'use client';
-import Map, { Marker } from 'react-map-gl/mapbox';
+import Map, { Marker, Layer, Source, LayerProps } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useState, useEffect, Suspense } from 'react';
 import MarkerDialog from './markerDialog';
@@ -24,6 +24,30 @@ function severityColor(severity: string) {
   }
 }
 
+// 3D Building Layer Style
+const buildingLayer: LayerProps = {
+  id: '3d-buildings',
+  source: 'composite',
+  'source-layer': 'building',
+  filter: ['==', 'extrude', 'true'],
+  type: 'fill-extrusion',
+  minzoom: 15,
+  paint: {
+    'fill-extrusion-color': '#aaa',
+    'fill-extrusion-height': [
+      'interpolate', ['linear'], ['zoom'],
+      15, 0,
+      15.05, ['get', 'height']
+    ],
+    'fill-extrusion-base': [
+      'interpolate', ['linear'], ['zoom'],
+      15, 0,
+      15.05, ['get', 'min_height']
+    ],
+    'fill-extrusion-opacity': 0.6
+  }
+};
+
 const MapBox = ({data}: Props) => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [userloc, setUserLoc] = useState<[number, number]>([ -73.8203, 40.7367 ]);
@@ -31,7 +55,9 @@ const MapBox = ({data}: Props) => {
   const [viewState, setViewState] = useState({
     longitude: userloc[0],
     latitude: userloc[1],
-    zoom: 13
+    zoom: 13,
+    pitch: 45,
+    bearing: 0
   });
   
   useEffect(() => {
@@ -47,7 +73,8 @@ const MapBox = ({data}: Props) => {
 
     function errorLocation() {
       console.log('Location error');
-      setUserLoc([-73.8203, 40.7367]);    }
+      setUserLoc([-73.8203, 40.7367]);
+    }
 
   }, []);
 
@@ -59,6 +86,14 @@ const MapBox = ({data}: Props) => {
     }));
   }, [userloc]);
 
+  // Helper to toggle 3D view
+  const toggle3DView = () => {
+    setViewState(prev => ({
+      ...prev,
+      pitch: prev.pitch > 0 ? 0 : 45
+    }));
+  };
+
   return (
     <>
       <div className="w-full h-full overflow-hidden rounded-lg">
@@ -69,6 +104,9 @@ const MapBox = ({data}: Props) => {
           mapStyle="mapbox://styles/mapbox/streets-v12"
           onMove={(evt) => {setViewState(evt.viewState)}}
         >
+          {/* 3D building layer */}
+          <Layer {...buildingLayer} />
+          
           {data
             .filter((oost) => oost.latitude !== null && oost.longitude !== null)
             .map((oost) => (
@@ -104,6 +142,19 @@ const MapBox = ({data}: Props) => {
           
         </Map>
       </div>
+
+      {/* Add zoom controls or info about 3D buildings */}
+      <div className="absolute bottom-2 left-2 bg-white/80 dark:bg-black/60 backdrop-blur-sm text-xs p-1 rounded">
+        Zoom in to see 3D buildings (zoom level: {Math.round(viewState.zoom)})
+      </div>
+
+      {/* Toggle 3D view button */}
+      <button 
+        onClick={toggle3DView}
+        className="absolute bottom-2 right-2 bg-white/80 dark:bg-black/60 backdrop-blur-sm text-xs p-2 rounded-full hover:bg-white/100 dark:hover:bg-black/80 transition-colors"
+      >
+        {viewState.pitch > 0 ? '2D' : '3D'}
+      </button>
 
       {/* Dialog for displaying marker info */}
       {currInfo && (
