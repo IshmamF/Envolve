@@ -82,7 +82,9 @@ Our solution is simple: a community-driven platform that empowers residents to c
 
 ### How it works
 
-<img src='system-diagram-placeholder' width=500 />
+<div align="center">
+  <img src='https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/003/312/477/datas/original.png' width=800 />
+</div>
 
 Intelligent Reporting & Analysis: 
 Residents capture a photo of a local issue with a title, and the platform auto-captures location data while an AI model recognizes the object. The combined details are then processed by a generative model that suggests a detailed description, relevant tags, and a severity assessment to prioritize action.
