@@ -76,8 +76,10 @@ Imagine your neighborhood. Small environmental issues—litter, illegal dumping,
 
 Our solution is simple: a community-driven platform that empowers residents to capture and share these issues with just a click. Snap a photo, add a quick note, and let our AI do the heavy lifting—identifying critical problems, categorizing them, and even initiating polls that automatically connect you with local authorities.
 
-<img src='demo-gif-placeholder' width='1000' />
-  
+<div align="center">
+    <img src="https://github.com/user-attachments/assets/cc8d7e2f-a4cc-4168-812f-4c88ae5f36f9" alt="Demo-GIF">
+</div>
+
 ### How it works
 
 <img src='system-diagram-placeholder' width=500 />
@@ -143,7 +145,7 @@ npm run server
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -160,9 +162,9 @@ Project Link: [https://github.com/ishmamf/envolve](https://github.com/ishmamf/en
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-This project was submitted to the HackNYU 2025 hackathon for the Lifestyle/Health track.
+This project was submitted to HackKnight Spring 2025 hackathon for the Environment track.
 
-Devpost link: placeholder
+Devpost link: https://devpost.com/software/envolve-eunj39
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -170,18 +172,18 @@ Devpost link: placeholder
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/josephHelfenbein/hacknyu.svg?style=for-the-badge
-[contributors-url]: https://github.com/josephHelfenbein/hacknyu/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/josephHelfenbein/hacknyu.svg?style=for-the-badge
-[forks-url]: https://github.com/josephHelfenbein/hacknyu/network/members
-[stars-shield]: https://img.shields.io/github/stars/josephHelfenbein/hacknyu.svg?style=for-the-badge
-[stars-url]: https://github.com/josephHelfenbein/hacknyu/stargazers
-[issues-shield]: https://img.shields.io/github/issues/josephHelfenbein/hacknyu.svg?style=for-the-badge
-[issues-url]: https://github.com/josephHelfenbein/hacknyu/issues
-[license-shield]: https://img.shields.io/github/license/josephHelfenbein/hacknyu.svg?style=for-the-badge
-[license-url]: https://github.com/josephHelfenbein/hacknyu/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/IshmamF/Envolve.svg?style=for-the-badge
+[contributors-url]: https://github.com/IshmamF/Envolve/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/IshmamF/Envolve.svg?style=for-the-badge
+[forks-url]: https://github.com/IshmamF/Envolve/network/members
+[stars-shield]: https://img.shields.io/github/stars/IshmamF/Envolve.svg?style=for-the-badge
+[stars-url]: https://github.com/IshmamF/Envolve/stargazers
+[issues-shield]: https://img.shields.io/github/issues/IshmamF/Envolve.svg?style=for-the-badge
+[issues-url]: https://github.com/IshmamF/Envolve/issues
+[license-shield]: https://img.shields.io/github/license/IshmamF/Envolve.svg?style=for-the-badge
+[license-url]: https://github.com/IshmamF/Envolve/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/othneildrew
+[linkedin-url]: https://www.linkedin.com/in/ishmam-fardin/
 [product-screenshot]: https://github.com/josephHelfenbein/hacknyu/blob/main/product-screenshot.png
 [Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
 [Next-url]: https://nextjs.org/
