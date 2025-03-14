@@ -26,7 +26,36 @@ interface PostData {
   author: string;
   latitude: number | null;
   longitude: number | null;
+  location?: string;
 }
+
+// helper to turn coords into storeable data in supabase
+const reverseGeocode = async (latitude: number, longitude: number): Promise<string> => {
+  try {
+    const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${mapboxToken}&types=place`
+    );
+    
+    if (!response.ok) {
+      throw new Error('Geocoding API request failed');
+    }
+    
+    const data = await response.json();
+    
+    if (data.features && data.features.length > 0) {
+      // city + state extract
+      const placeName = data.features[0].place_name;
+      // shit gets stored as "city_state" replace _ with comma and space for nicer formatting
+      return placeName.replace(/_/g, ', ');
+    }
+    
+    return "Unknown location";
+  } catch (error) {
+    console.error("Error in reverse geocoding:", error);
+    return "Unknown location";
+  }
+};
 
 const PostForm = ({ image, apiData }: PostFormProps) => {
   const [formData, setFormData] = useState<PostData>({
@@ -42,6 +71,7 @@ const PostForm = ({ image, apiData }: PostFormProps) => {
   
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [locationString, setLocationString] = useState<string | null>(null);
 
   useEffect(() => {
     // Generate image preview
@@ -50,12 +80,22 @@ const PostForm = ({ image, apiData }: PostFormProps) => {
     // Get location
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
           setFormData(prev => ({
             ...prev,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+            latitude,
+            longitude,
           }));
+          
+          // reverse geocode to get location string
+          try {
+            const location = await reverseGeocode(latitude, longitude);
+            setLocationString(location);
+          } catch (error) {
+            console.error("Failed to get location name:", error);
+          }
         },
         (error) => {
           console.error("Location error:", error.message);
@@ -77,7 +117,8 @@ const PostForm = ({ image, apiData }: PostFormProps) => {
         ...formData,
         author: user?.user?.id || "anonymous",
         category: formData.category ? [formData.category] : [], // Ensure it's an array
-        tags: formData.tags ? formData.tags.split(",") : [] // Convert comma-separated string to array
+        tags: formData.tags ? formData.tags.split(",") : [], // Convert comma-separated string to array
+        location: locationString || "Unknown location" // Add the properly formatted location
       };
   
       const { data, error } = await supabase
@@ -150,7 +191,7 @@ const PostForm = ({ image, apiData }: PostFormProps) => {
 
       <form className="w-full space-y-4" onSubmit={e => e.preventDefault()}>
         {Object.entries(formData).map(([key, value]) => {
-          if (key === 'latitude' || key === 'longitude' || key === 'author') return null;
+          if (key === 'latitude' || key === 'longitude' || key === 'author' || key === 'location') return null;
           
           return key === 'description' ? (
             <textarea
@@ -175,9 +216,10 @@ const PostForm = ({ image, apiData }: PostFormProps) => {
         })}
 
         {formData.latitude && formData.longitude && (
-          <p className="text-sm text-gray-600">
-            Location: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
-          </p>
+          <div className="text-sm text-gray-600">
+            <p>Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}</p>
+            {locationString && <p>Location: {locationString}</p>}
+          </div>
         )}
 
         <button
