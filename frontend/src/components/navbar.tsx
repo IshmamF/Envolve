@@ -94,11 +94,6 @@ export default function Navbar({ activePage, setActivePage }: NavbarProps) {
 
           {/* Help & Auth Buttons */}
           <div className="flex items-center gap-2">
-            <Link href="/help">
-              <Button variant="ghost" size="icon">
-                <HelpCircle size={20} />
-              </Button>
-            </Link>
             <AuthButton />
           </div>
         </div>

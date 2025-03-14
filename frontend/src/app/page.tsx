@@ -168,10 +168,6 @@ export default function HomePage() {
               Take a photo of an environmental issue and upload it with a title. Our AI will help generate tags and
               descriptions.
             </p>
-            <Link href="/map" className="text-emerald-600 font-medium inline-flex items-center hover:underline">
-              Report an issue
-              <ArrowUpRight className="ml-1 h-4 w-4" />
-            </Link>
           </Card>
 
           <Card className="p-8 hover:shadow-lg transition-all duration-300 border border-emerald-100/50 animate-fade-in [animation-delay:100ms] rounded-xl">
@@ -183,10 +179,6 @@ export default function HomePage() {
               Our AI automatically determines severity, generates tags, and writes detailed descriptions from your photo
               and title.
             </p>
-            <Link href="/map" className="text-emerald-600 font-medium inline-flex items-center hover:underline">
-              See examples
-              <ArrowUpRight className="ml-1 h-4 w-4" />
-            </Link>
           </Card>
 
           <Card className="p-8 hover:shadow-lg transition-all duration-300 border border-emerald-100/50 animate-fade-in [animation-delay:200ms] rounded-xl">
@@ -198,10 +190,6 @@ export default function HomePage() {
               For severe issues, our system automatically notifies relevant organizations and authorities on your
               behalf.
             </p>
-            <Link href="/map" className="text-emerald-600 font-medium inline-flex items-center hover:underline">
-              View organizations
-              <ArrowUpRight className="ml-1 h-4 w-4" />
-            </Link>
           </Card>
 
           <Card className="p-8 hover:shadow-lg transition-all duration-300 border border-emerald-100/50 animate-fade-in [animation-delay:300ms] rounded-xl">
@@ -213,10 +201,6 @@ export default function HomePage() {
               Organize cleanup events, track progress, and collaborate with neighbors to resolve issues in your
               community.
             </p>
-            <Link href="/map" className="text-emerald-600 font-medium inline-flex items-center hover:underline">
-              Join community
-              <ArrowUpRight className="ml-1 h-4 w-4" />
-            </Link>
           </Card>
         </div>
       </section>
@@ -397,32 +381,6 @@ export default function HomePage() {
                       className="text-slate-500 hover:text-emerald-600 transition-colors"
                     >
                       Create Account
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/" className="text-slate-500 hover:text-emerald-600 transition-colors">
-                      Privacy Policy
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-4 text-base">Connect</h4>
-                <ul className="space-y-3">
-                  <li>
-                    <Link href="/" className="text-slate-500 hover:text-emerald-600 transition-colors">
-                      About Us
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/" className="text-slate-500 hover:text-emerald-600 transition-colors">
-                      Contact
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/" className="text-slate-500 hover:text-emerald-600 transition-colors">
-                      FAQ
                     </Link>
                   </li>
                 </ul>
