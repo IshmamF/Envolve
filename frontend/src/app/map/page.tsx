@@ -31,7 +31,9 @@ export default function MapPage() {
         {/* Map View - Full width on mobile, partial on desktop */}
         <div className="md:flex-1 overflow-hidden md:order-2 p-4">
           {isLoading ? (
-            <div>Loading...</div>
+            <div className="h-[40vh] md:h-full bg-white dark:bg-gray-800 shadow-sm rounded-lg flex items-center justify-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500"></div>
+            </div>
           ) : (
             <div className="h-[40vh] md:h-full bg-white dark:bg-gray-800 shadow-sm rounded-lg flex items-center justify-center text-xl text-gray-500 dark:text-gray-400">
               <MapBox data={data!} />
@@ -121,7 +123,9 @@ const PostsContainer = ({
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden divide-y divide-gray-200 dark:divide-gray-700">
         {isLoading ? (
-          <div className="p-4 text-center">Loading posts...</div>
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+          </div>
         ) : posts.length > 0 ? (
           <AnimatePresence>
             <motion.div
