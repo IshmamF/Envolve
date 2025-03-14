@@ -1,14 +1,10 @@
-import { useState } from "react";
-import Link from "next/link";
 import { HardCodedPost } from "@/types/Post";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+
 import {
   MapPin,
   Calendar,
-  ArrowUp,
-  CheckCircle,
   AlertTriangle,
   AlertCircle,
   AlertOctagon
