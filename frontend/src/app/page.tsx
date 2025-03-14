@@ -491,7 +491,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-5">
             <Link href="/auth/signup">
-              <motion.div
+              <motion.button
                 initial="rest"
                 whileHover="hover"
                 whileTap="tap"
@@ -509,23 +509,19 @@ export default function HomePage() {
                   },
                   tap: { scale: 0.98, transition: { duration: 0.1 } }
                 }}
+                className="font-medium inline-flex items-center justify-center gap-2 h-10 text-base px-8 py-6 rounded-md shadow bg-white text-emerald-700 hover:bg-white/90 hover:text-emerald-800 relative overflow-hidden group"
               >
-                <Button
-                  size="lg"
-                  className="font-medium text-base px-8 py-6 bg-white text-emerald-700 hover:bg-white/90 hover:text-emerald-800 relative overflow-hidden group"
-                >
-                  <motion.span 
-                    className="absolute inset-0 bg-gradient-to-r from-emerald-100 to-emerald-50 opacity-0 group-hover:opacity-100"
-                    initial={{ x: "-100%" }}
-                    whileHover={{ x: 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                  <span className="relative">Sign Up Now</span>
-                </Button>
-              </motion.div>
+                <motion.span 
+                  className="absolute inset-0 bg-gradient-to-r from-emerald-100 to-emerald-50 opacity-0 group-hover:opacity-100"
+                  initial={{ x: "-100%" }}
+                  whileHover={{ x: 0 }}
+                  transition={{ duration: 0.3 }}
+                />
+                <span className="relative">Sign Up Now</span>
+              </motion.button>
             </Link>
             <Link href="/map">
-              <motion.div
+              <motion.button
                 initial="rest"
                 whileHover="hover"
                 whileTap="tap"
@@ -542,23 +538,19 @@ export default function HomePage() {
                   },
                   tap: { scale: 0.98, transition: { duration: 0.1 } }
                 }}
+                className="font-medium inline-flex items-center justify-center gap-2 h-10 text-base px-8 py-6 rounded-md shadow bg-emerald-500 text-white hover:bg-emerald-400 border-none relative overflow-hidden group"
               >
-                <Button
-                  size="lg"
-                  className="font-medium text-base px-8 py-6 bg-emerald-500 text-white hover:bg-emerald-400 border-none relative overflow-hidden group"
-                >
-                  <motion.span 
-                    className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 opacity-0 group-hover:opacity-100"
-                    initial={{ x: "-100%" }}
-                    whileHover={{ x: 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                  <span className="relative flex items-center">
-                    Report an Issue
-                    <Camera className="ml-2 h-4 w-4" />
-                  </span>
-                </Button>
-              </motion.div>
+                <motion.span 
+                  className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 opacity-0 group-hover:opacity-100"
+                  initial={{ x: "-100%" }}
+                  whileHover={{ x: 0 }}
+                  transition={{ duration: 0.3 }}
+                />
+                <span className="relative flex items-center">
+                  Report an Issue
+                  <Camera className="ml-2 h-4 w-4" />
+                </span>
+              </motion.button>
             </Link>
           </div>
         </motion.div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext } from "react";
-import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/navbar";
 
 // Create a context for the navbar state
@@ -24,23 +24,23 @@ export default function NavbarProvider({
   children: React.ReactNode;
 }) {
   const [activePage, setActivePage] = useState("home");
-  const pathname = usePathname();
+  const router = useRouter();
 
-  // Update active page based on pathname
+  // Preload the common routes for faster navigation
   useEffect(() => {
-    const path = pathname.split("/")[1] || "home";
+    // Preload the most common routes for faster navigation
+    const routesToPreload = ["/", "/map", "/leaderboard", "/settings"];
     
-    // Map path to navbar item
-    if (path === "") {
-      setActivePage("home");
-    } else if (path === "map") {
-      setActivePage("map");
-    } else if (path === "settings") {
-      setActivePage("settings");
-    } else if (path === "help") {
-      setActivePage("help");
-    }
-  }, [pathname]);
+    // Use setTimeout to ensure this happens after initial render
+    const timer = setTimeout(() => {
+      routesToPreload.forEach(route => {
+        // This will prefetch the route data without navigating
+        router.prefetch(route);
+      });
+    }, 1000); // Wait 1 second after initial load
+    
+    return () => clearTimeout(timer);
+  }, [router]);
 
   return (
     <NavbarContext.Provider value={{ activePage, setActivePage }}>

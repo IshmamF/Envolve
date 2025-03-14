@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, Home, Settings, HelpCircle, Trophy } from "lucide-react"
+import { Map, Home, Settings, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AuthButton } from "@/components/auth-button"
 import { Logo } from "@/components/logo"
@@ -24,16 +24,24 @@ export default function Navbar({ activePage, setActivePage }: NavbarProps) {
     { id: "settings", label: "Settings", icon: <Settings size={20} />, href: "/settings" },
   ]
 
-  // Update activePage based on current path
+
+  // keeps active tab in sync with curr page ( safe from back forward change or redirects)
   useEffect(() => {
-    const path = pathname.split('/')[1] || 'home'
-    const matchingPage = navItems.find(item => 
-      (path === '' && item.id === 'home') || item.href.includes(path)
-    )
-    if (matchingPage) {
-      setActivePage(matchingPage.id)
+    if (pathname === "/") {
+      setActivePage("home");
+      return;
     }
-  }, [pathname, setActivePage])
+    
+    // other routes
+    const path = pathname.split('/')[1];
+    const matchingItem = navItems.find(item => 
+      item.href.includes(`/${path}`)
+    );
+    
+    if (matchingItem) {
+      setActivePage(matchingItem.id);
+    }
+  }, [pathname, setActivePage, navItems]);
 
   const [isScrolled, setIsScrolled] = useState(false)
 
@@ -45,6 +53,11 @@ export default function Navbar({ activePage, setActivePage }: NavbarProps) {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  // handle click to update active page immediately before navigation
+  const handleNavClick = (pageId: string) => {
+    setActivePage(pageId);
+  };
 
   return (
     <>
@@ -63,11 +76,10 @@ export default function Navbar({ activePage, setActivePage }: NavbarProps) {
           {/* Navigation Links - Desktop */}
           <div className="hidden sm:flex items-center gap-2">
             {navItems.map((item) => (
-              <Link key={item.id} href={item.href}>
+              <Link key={item.id} href={item.href} onClick={() => handleNavClick(item.id)}>
                 <Button
                   variant={activePage === item.id ? "default" : "ghost"}
                   className={`flex items-center gap-2 ${activePage === item.id ? "bg-green-600 hover:bg-green-700" : ""}`}
-                  onClick={() => setActivePage(item.id)}
                 >
                   {item.icon}
                   <span className="hidden md:inline">{item.label}</span>
@@ -79,12 +91,11 @@ export default function Navbar({ activePage, setActivePage }: NavbarProps) {
           {/* Mobile Nav */}
           <div className="flex sm:hidden items-center gap-2">
             {navItems.map((item) => (
-              <Link key={item.id} href={item.href}>
+              <Link key={item.id} href={item.href} onClick={() => handleNavClick(item.id)}>
                 <Button
                   variant={activePage === item.id ? "default" : "ghost"}
                   size="icon"
                   className={activePage === item.id ? "bg-green-600 hover:bg-green-700" : ""}
-                  onClick={() => setActivePage(item.id)}
                 >
                   {item.icon}
                 </Button>
